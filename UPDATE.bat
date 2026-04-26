@@ -1,6 +1,6 @@
 @echo off
-REM Pulls the latest changes from GitHub and reinstalls any new dependencies.
-REM Use this on Nick's laptop instead of moving files manually.
+REM Pulls the latest changes from GitHub and re-runs INSTALL.bat to handle
+REM any new Python or dependency requirements (cheap if nothing changed).
 
 setlocal
 cd /d "%~dp0"
@@ -14,7 +14,7 @@ if errorlevel 1 (
         pause
         exit /b 1
     )
-    winget install --id Git.Git --silent --accept-package-agreements --accept-source-agreements --scope user
+    winget install --id Git.Git -e --source winget --silent --accept-package-agreements --accept-source-agreements --scope user
     echo.
     echo Git installed. Close this window, open a new one, and run UPDATE.bat again.
     pause
@@ -22,7 +22,7 @@ if errorlevel 1 (
 )
 
 if not exist .git (
-    echo This folder isn't a git repo yet. Run INSTALL.bat first.
+    echo This folder isn't a git repo. Run INSTALL.bat directly instead.
     pause
     exit /b 1
 )
@@ -37,14 +37,7 @@ if errorlevel 1 (
     exit /b 1
 )
 
-if exist .venv\Scripts\python.exe (
-    echo Updating dependencies...
-    .venv\Scripts\python.exe -m pip install -r requirements.txt --quiet
-)
-
 echo.
-echo ===================================================
-echo  Update complete! Double-click RUN.bat to play.
-echo ===================================================
+echo Refreshing install (auto-rebuilds venv if Python version changed)...
 echo.
-pause
+call "%~dp0INSTALL.bat"
