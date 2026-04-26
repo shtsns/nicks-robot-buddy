@@ -12,13 +12,36 @@ A small AI app for an 8-year-old. Nick types or speaks; Buddy the puppy talks ba
 
 The robot side runs in **dry-run** until you connect a paired mBot, so the app is fully usable for testing without the robot.
 
-## Quick start on Nick's laptop
+## First-time setup on Nick's laptop
 
-1. **Unzip** the `NicksRobotBuddy.zip` file.
-2. **Double-click `INSTALL.bat`** in the unzipped folder.
-   - If Python isn't installed, it auto-installs Python 3.12 via winget. Takes 1–2 minutes.
-   - Then it sets up a virtual environment and installs `anthropic`, `pywebview`, `pyserial`.
-3. **Double-click `RUN.bat`** to start. The app opens in **demo mode** so Nick can play immediately.
+Open Command Prompt and run these three lines (copy/paste all at once is fine):
+
+```
+winget install Git.Git --silent --accept-package-agreements --accept-source-agreements --scope user
+git clone https://github.com/shtsns/nicks-robot-buddy.git "%USERPROFILE%\Desktop\NicksRobotBuddy"
+"%USERPROFILE%\Desktop\NicksRobotBuddy\INSTALL.bat"
+```
+
+That:
+1. Installs Git (if missing). Takes ~30 seconds.
+2. Clones the repo to the desktop.
+3. Runs INSTALL.bat, which auto-installs Python 3.12 and sets up the virtual environment.
+
+After that, **double-click `RUN.bat`** to play. The app opens in **demo mode** so Nick can play immediately.
+
+## Getting updates
+
+Whenever I push new changes from my dev machine, on Nick's laptop:
+
+- **Double-click `UPDATE.bat`** — does `git pull --ff-only` and refreshes any new dependencies.
+- **Double-click `RUN.bat`** to launch with the latest.
+
+That's it. No USB, no zip files.
+
+## Alternate setup: from a zip file
+
+If git isn't an option, download the latest zip from GitHub:
+<https://github.com/shtsns/nicks-robot-buddy/archive/refs/heads/main.zip> → unzip → run INSTALL.bat. You won't get the auto-update flow but it works.
 
 ## Turn on the real AI brain (optional but recommended)
 
