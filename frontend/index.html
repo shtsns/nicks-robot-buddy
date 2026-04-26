@@ -76,32 +76,36 @@
   <template id="buddy-template">
     <svg class="buddy-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
 
+      <!-- Tail: drawn FIRST so it sits behind the body. Curls up-right behind. -->
+      <g class="tail-group">
+        <path class="tail-outer"
+              d="M 318 358 Q 365 340 385 290 Q 400 240 380 215 Q 360 225 358 270 Q 345 320 318 350 Z"
+              fill="#C68A38" stroke="#8B5E2A" stroke-width="3"/>
+        <path class="tail-inner"
+              d="M 328 350 Q 360 335 372 295 Q 380 255 372 235 Q 365 245 365 275 Q 358 310 332 340 Z"
+              fill="#E0A85A" opacity="0.6"/>
+      </g>
+
       <!-- Body / chest behind the head -->
       <ellipse cx="200" cy="380" rx="160" ry="55" fill="#E5A560" stroke="#8B5E2A" stroke-width="3"/>
 
-      <!-- Tail behind everything -->
-      <g class="tail-group">
-        <path class="tail" d="M 340 320 Q 385 290 380 240 Q 395 270 388 310 Q 380 335 345 340 Z"
-              fill="#C68A38" stroke="#8B5E2A" stroke-width="2.5"/>
-      </g>
-
-      <!-- Floppy ears: drawn BEFORE the head so the head edges them slightly.
-           Outer <g> gets CSS bounce animation; inner <g> holds the static tilt. -->
+      <!-- Floppy ears: path-based hanging shapes. Drawn BEFORE head so the head's
+           outline edges over them slightly for visual continuity. -->
       <g class="ear ear-left">
-        <g transform="rotate(-22 100 200)">
-          <ellipse cx="100" cy="240" rx="42" ry="85"
-                   fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3"/>
-          <ellipse cx="105" cy="245" rx="26" ry="68"
-                   fill="#D89A3F"/>
-        </g>
+        <path class="ear-outer"
+              d="M 100 110 Q 30 128 25 220 Q 25 318 78 338 Q 130 318 135 230 Q 135 128 100 110 Z"
+              fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3"/>
+        <path class="ear-inner"
+              d="M 100 132 Q 55 150 50 225 Q 50 305 82 320 Q 120 305 125 232 Q 125 148 100 132 Z"
+              fill="#E0A85A"/>
       </g>
       <g class="ear ear-right">
-        <g transform="rotate(22 300 200)">
-          <ellipse cx="300" cy="240" rx="42" ry="85"
-                   fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3"/>
-          <ellipse cx="295" cy="245" rx="26" ry="68"
-                   fill="#D89A3F"/>
-        </g>
+        <path class="ear-outer"
+              d="M 300 110 Q 370 128 375 220 Q 375 318 322 338 Q 270 318 265 230 Q 265 128 300 110 Z"
+              fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3"/>
+        <path class="ear-inner"
+              d="M 300 132 Q 345 150 350 225 Q 350 305 318 320 Q 280 305 275 232 Q 275 148 300 132 Z"
+              fill="#E0A85A"/>
       </g>
 
       <!-- Head -->

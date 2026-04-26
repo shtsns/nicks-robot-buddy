@@ -76,12 +76,26 @@
   let currentUtterance = null;
   let mouthInterval = null;
 
+  // Voice selection priority: Microsoft "Online (Natural)" neural voices sound
+  // dramatically better than the legacy ones. Aria/Jenny/Sara are warm, kid-
+  // friendly female voices. Ana is specifically tagged for kids.
   function pickVoice() {
     const voices = window.speechSynthesis.getVoices();
-    const preferred = voices.find(v =>
-      /child|kid|junior|female|samantha|zira|google us english|aria/i.test(v.name)
-    );
-    return preferred || voices.find(v => v.lang && v.lang.startsWith('en')) || voices[0];
+    const tiers = [
+      // Tier 1: Azure neural voices — best quality, internet required
+      v => /Microsoft\s+(Ana|Aria|Jenny|Sara)\s+Online/i.test(v.name),
+      // Tier 2: any Microsoft "Online (Natural)" voice
+      v => /Microsoft.*Online.*Natural/i.test(v.name),
+      // Tier 3: any female English voice
+      v => v.lang && v.lang.startsWith('en') && /female|zira|hazel|samantha|aria|jenny/i.test(v.name),
+      // Tier 4: any English voice
+      v => v.lang && v.lang.startsWith('en'),
+    ];
+    for (const matcher of tiers) {
+      const found = voices.find(matcher);
+      if (found) return found;
+    }
+    return voices[0];
   }
 
   function speak(text, buddy) {
@@ -126,85 +140,52 @@
   }
 
   // ----- Speech recognition (Nick talking) -----
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  let recognition = null;
-  let recognitionActive = false;
-  let recognitionTarget = null; // { input, statusEl, onFinal }
-
-  function setupRecognition() {
-    if (!SR) return null;
-    const r = new SR();
-    r.lang = 'en-US';
-    r.interimResults = true;
-    r.continuous = true;
-
-    r.onresult = (event) => {
-      let interim = '';
-      let final = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) final += transcript;
-        else interim += transcript;
-      }
-      if (recognitionTarget) {
-        if (final) recognitionTarget.input.value = final.trim();
-        else if (interim) recognitionTarget.input.value = interim.trim();
-      }
-    };
-    r.onerror = (e) => {
-      if (recognitionTarget && recognitionTarget.statusEl) {
-        recognitionTarget.statusEl.textContent = 'Couldn\'t hear you, try the keyboard?';
-      }
-      recognitionActive = false;
-    };
-    r.onend = () => {
-      recognitionActive = false;
-      document.querySelectorAll('.mic-btn').forEach(b => b.classList.remove('listening'));
-      if (recognitionTarget) {
-        const text = recognitionTarget.input.value.trim();
-        if (text && recognitionTarget.onFinal) recognitionTarget.onFinal(text);
-      }
-      recognitionTarget = null;
-    };
-    return r;
-  }
-
-  recognition = setupRecognition();
+  // We can NOT use window.SpeechRecognition here — WebView2 (which pywebview
+  // uses on Windows) doesn't enable the API even though it exists. Instead,
+  // we call the Python backend's listen() which records with PyAudio and
+  // transcribes with Google's free recognition endpoint.
+  let voiceAvailable = false;
+  let voiceListening = false;
 
   function attachMic(micBtn, input, statusEl, onFinal, buddy) {
-    if (!recognition) {
+    if (!voiceAvailable) {
       micBtn.disabled = true;
       micBtn.title = 'Voice not supported on this device — use the keyboard';
       micBtn.style.opacity = '0.4';
       return;
     }
 
-    const start = () => {
-      if (recognitionActive) return;
+    micBtn.addEventListener('click', async () => {
+      if (voiceListening) return;
       stopSpeaking();
-      try {
-        recognitionTarget = { input, statusEl, onFinal };
-        recognition.start();
-        recognitionActive = true;
-        micBtn.classList.add('listening');
-        if (buddy) {
-          buddy.classList.remove('listening'); // reset so the animation re-fires
-          void buddy.offsetWidth;              // force reflow
-          buddy.classList.add('listening');
-        }
-        if (statusEl) statusEl.textContent = 'Listening...';
-      } catch (_) { /* already started */ }
-    };
-    const stop = () => {
-      if (!recognitionActive) return;
-      try { recognition.stop(); } catch (_) {}
-    };
+      voiceListening = true;
+      micBtn.classList.add('listening');
+      if (buddy) {
+        buddy.classList.remove('listening');
+        void buddy.offsetWidth;
+        buddy.classList.add('listening');
+      }
+      if (statusEl) statusEl.textContent = '🎤 Listening... speak now!';
 
-    micBtn.addEventListener('mousedown', start);
-    micBtn.addEventListener('touchstart', (e) => { e.preventDefault(); start(); });
-    micBtn.addEventListener('mouseup', stop);
-    micBtn.addEventListener('mouseleave', stop);
-    micBtn.addEventListener('touchend', stop);
+      let result;
+      try {
+        result = await callApi('listen');
+      } catch (e) {
+        result = { ok: false, error: String(e) };
+      }
+
+      voiceListening = false;
+      micBtn.classList.remove('listening');
+
+      if (result && result.ok && result.text) {
+        input.value = result.text;
+        if (statusEl) statusEl.textContent = '';
+        if (onFinal) onFinal(result.text);
+      } else {
+        const msg = (result && result.error) || 'Voice unavailable';
+        if (statusEl) statusEl.textContent = msg;
+      }
+    });
   }
 
   // ----- Python bridge helpers -----
@@ -244,12 +225,14 @@
     if (!text) return;
     chatInput.value = '';
     appendBubble('you', text);
-    chatStatus.textContent = 'Buddy is thinking...';
+    chatStatus.textContent = '🦴 Buddy is thinking...';
     chatSend.disabled = true;
+    if (buddies.chat) buddies.chat.classList.add('thinking');
 
     const result = await callApi('chat', text);
     chatSend.disabled = false;
     chatStatus.textContent = '';
+    if (buddies.chat) buddies.chat.classList.remove('thinking');
 
     if (!result.ok) {
       appendBubble('buddy', '*tilts head* Buddy got confused: ' + (result.error || 'unknown'));
@@ -263,7 +246,11 @@
   chatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') sendChat();
   });
-  attachMic(chatMic, chatInput, chatStatus, () => sendChat(), buddies.chat);
+
+  function setupMics() {
+    attachMic(chatMic, chatInput, chatStatus, () => sendChat(), buddies.chat);
+    attachMic(robotMic, robotInput, null, () => sendRobotCommand(), buddies.robot);
+  }
 
   // ----- Robot skill -----
   const robotLog = document.getElementById('robot-log');
@@ -340,11 +327,13 @@
     const text = robotInput.value.trim();
     if (!text) return;
     robotInput.value = '';
-    robotNarration.textContent = 'Buddy is thinking...';
+    robotNarration.textContent = '🦴 Buddy is thinking...';
     robotSend.disabled = true;
+    if (buddies.robot) buddies.robot.classList.add('thinking');
 
     const result = await callApi('robot_command', text);
     robotSend.disabled = false;
+    if (buddies.robot) buddies.robot.classList.remove('thinking');
 
     if (!result.ok) {
       robotNarration.textContent = 'Buddy got confused: ' + (result.error || 'unknown');
@@ -362,7 +351,6 @@
 
   robotSend.addEventListener('click', sendRobotCommand);
   robotInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendRobotCommand(); });
-  attachMic(robotMic, robotInput, null, () => sendRobotCommand(), buddies.robot);
 
   robotStop.addEventListener('click', async () => {
     stopSpeaking();
@@ -385,11 +373,19 @@
       const msg = status.ai_error || 'Buddy is in demo mode.';
       appendBubble('buddy', msg + ' Try saying hi, asking for a joke, or driving the robot!');
     }
+    if (status && status.voice_available) {
+      voiceAvailable = true;
+    } else {
+      const reason = (status && status.voice_error) || 'voice not available';
+      console.warn('[buddy] voice unavailable:', reason);
+    }
     if (status && status.robot_connected) {
       setRobotConnected(true, status.robot_port);
     } else {
       setRobotConnected(false, null);
     }
+    // Re-attach mic handlers now that voiceAvailable is known
+    setupMics();
   }
 
   boot();

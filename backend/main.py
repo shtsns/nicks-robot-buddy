@@ -23,6 +23,7 @@ sys.path.insert(0, str(PROJECT_ROOT))
 from backend import config  # noqa: E402
 from backend.buddy_brain import BuddyBrain  # noqa: E402
 from backend.robot_serial import RobotAction, RobotConnection, list_serial_ports  # noqa: E402
+from backend.voice import VoiceListener  # noqa: E402
 
 
 class API:
@@ -31,6 +32,7 @@ class API:
         self._brain = BuddyBrain()
         self._robot = RobotConnection(log_callback=self._on_robot_log)
         self._robot_thread: Optional[threading.Thread] = None
+        self._voice = VoiceListener()
 
     def _attach_window(self, window: webview.Window) -> None:
         self._window = window
@@ -51,7 +53,14 @@ class API:
             "robot_connected": self._robot.is_connected,
             "robot_port": self._robot.port_name,
             "max_total_seconds": config.MAX_TOTAL_SECONDS,
+            "voice_available": self._voice.available,
+            "voice_error": self._voice.import_error,
         }
+
+    def listen(self) -> dict:
+        """Record from mic, transcribe to text. Blocking; pywebview runs API
+        methods on a worker thread so this doesn't freeze the UI."""
+        return self._voice.listen_once()
 
     def list_ports(self) -> list[dict]:
         return list_serial_ports()

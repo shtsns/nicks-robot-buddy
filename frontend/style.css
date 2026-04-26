@@ -83,31 +83,40 @@ html, body {
 
 /* idle animations */
 .tail-group {
-  transform-origin: 350px 240px;
+  transform-origin: 320px 358px;
   animation: wag 1.6s ease-in-out infinite;
 }
 .buddy-svg.speaking .tail-group { animation: wag 0.5s ease-in-out infinite; }
 
 @keyframes wag {
   0%, 100% { transform: rotate(-12deg); }
-  50%      { transform: rotate(18deg); }
+  50%      { transform: rotate(15deg); }
 }
 
 .ear-left {
-  transform-origin: 100px 200px;
-  animation: earBounceL 2.5s ease-in-out infinite;
+  transform-origin: 100px 110px;
+  animation: earBounceL 2.8s ease-in-out infinite;
 }
 .ear-right {
-  transform-origin: 300px 200px;
-  animation: earBounceR 2.5s ease-in-out infinite;
+  transform-origin: 300px 110px;
+  animation: earBounceR 2.8s ease-in-out infinite;
 }
 @keyframes earBounceL {
-  0%, 100% { transform: rotate(0deg); }
-  50%      { transform: rotate(3deg); }
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(2deg); }
 }
 @keyframes earBounceR {
-  0%, 100% { transform: rotate(0deg); }
-  50%      { transform: rotate(-3deg); }
+  0%, 100% { transform: rotate(3deg); }
+  50%      { transform: rotate(-2deg); }
+}
+
+/* Thinking animation: Buddy bobs his head and tilts slightly */
+.buddy-svg.thinking {
+  animation: thinkBob 1.2s ease-in-out infinite;
+}
+@keyframes thinkBob {
+  0%, 100% { transform: rotate(-2deg) translateY(0); }
+  50%      { transform: rotate(2deg) translateY(-4px); }
 }
 
 .eye {
