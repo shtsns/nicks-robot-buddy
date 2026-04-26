@@ -11,7 +11,21 @@
     <div class="paw-print">🐾</div>
     <h1>Nick's Robot Buddy</h1>
     <div class="paw-print">🐾</div>
+    <button id="settings-btn" class="settings-btn" title="Settings">⚙️</button>
   </header>
+
+  <!-- Settings modal -->
+  <div id="settings-modal" class="modal hidden">
+    <div class="modal-content">
+      <h2>Buddy's Voice</h2>
+      <p class="hint">Pick a voice and try it on. Buddy remembers your choice.</p>
+      <select id="voice-select" size="8"></select>
+      <div class="modal-actions">
+        <button id="voice-test" class="small-btn">▶ Try it</button>
+        <button id="settings-close" class="send-btn">Done</button>
+      </div>
+    </div>
+  </div>
 
   <main id="app">
 

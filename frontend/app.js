@@ -79,8 +79,16 @@
   // Voice selection priority: Microsoft "Online (Natural)" neural voices sound
   // dramatically better than the legacy ones. Aria/Jenny/Sara are warm, kid-
   // friendly female voices. Ana is specifically tagged for kids.
+  // User-selected voice (persisted in localStorage) overrides the tier ranking.
+  const SAVED_VOICE_KEY = 'buddy.voice.name';
+
   function pickVoice() {
     const voices = window.speechSynthesis.getVoices();
+    const saved = localStorage.getItem(SAVED_VOICE_KEY);
+    if (saved) {
+      const found = voices.find(v => v.name === saved);
+      if (found) return found;
+    }
     const tiers = [
       // Tier 1: Azure neural voices — best quality, internet required
       v => /Microsoft\s+(Ana|Aria|Jenny|Sara)\s+Online/i.test(v.name),
@@ -138,6 +146,59 @@
     window.speechSynthesis.onvoiceschanged = () => {};
     window.speechSynthesis.getVoices();
   }
+
+  // ----- Settings modal (voice picker) -----
+  const settingsBtn = document.getElementById('settings-btn');
+  const settingsModal = document.getElementById('settings-modal');
+  const voiceSelect = document.getElementById('voice-select');
+  const voiceTestBtn = document.getElementById('voice-test');
+  const settingsCloseBtn = document.getElementById('settings-close');
+
+  function refreshVoiceList() {
+    const voices = window.speechSynthesis.getVoices()
+      .filter(v => v.lang && v.lang.startsWith('en'))
+      .sort((a, b) => {
+        // Online/Natural voices first, then alphabetical
+        const aOnline = /Online|Natural/i.test(a.name) ? 0 : 1;
+        const bOnline = /Online|Natural/i.test(b.name) ? 0 : 1;
+        if (aOnline !== bOnline) return aOnline - bOnline;
+        return a.name.localeCompare(b.name);
+      });
+    const current = pickVoice();
+    voiceSelect.innerHTML = '';
+    voices.forEach(v => {
+      const opt = document.createElement('option');
+      opt.value = v.name;
+      const tag = /Online|Natural/i.test(v.name) ? '✨ ' : '   ';
+      opt.textContent = tag + v.name;
+      if (current && v.name === current.name) opt.selected = true;
+      voiceSelect.appendChild(opt);
+    });
+  }
+
+  settingsBtn.addEventListener('click', () => {
+    refreshVoiceList();
+    settingsModal.classList.remove('hidden');
+  });
+
+  settingsCloseBtn.addEventListener('click', () => {
+    if (voiceSelect.value) localStorage.setItem(SAVED_VOICE_KEY, voiceSelect.value);
+    settingsModal.classList.add('hidden');
+  });
+
+  voiceTestBtn.addEventListener('click', () => {
+    if (voiceSelect.value) localStorage.setItem(SAVED_VOICE_KEY, voiceSelect.value);
+    const target = buddies.chat || buddies.picker;
+    speak("Woof woof! Hi Nick, it's me Buddy! Wanna play?", target);
+  });
+
+  // Click outside the modal content closes it
+  settingsModal.addEventListener('click', (e) => {
+    if (e.target === settingsModal) {
+      if (voiceSelect.value) localStorage.setItem(SAVED_VOICE_KEY, voiceSelect.value);
+      settingsModal.classList.add('hidden');
+    }
+  });
 
   // ----- Speech recognition (Nick talking) -----
   // We can NOT use window.SpeechRecognition here — WebView2 (which pywebview

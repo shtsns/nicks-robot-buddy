@@ -11,6 +11,7 @@ html, body {
 }
 
 .app-header {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -19,6 +20,71 @@ html, body {
   background: #3B82F6;
   color: white;
   box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+}
+
+.settings-btn {
+  position: absolute;
+  top: 50%;
+  right: 18px;
+  transform: translateY(-50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.5);
+  background: rgba(255, 255, 255, 0.18);
+  color: white;
+  font-size: 20px;
+  cursor: pointer;
+  transition: background 0.2s, transform 0.2s;
+}
+.settings-btn:hover { background: rgba(255, 255, 255, 0.32); transform: translateY(-50%) rotate(45deg); }
+
+/* ---------- Modal ---------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(20, 14, 8, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeBg 0.2s ease-out;
+}
+.modal.hidden { display: none; }
+@keyframes fadeBg { from { opacity: 0; } to { opacity: 1; } }
+
+.modal-content {
+  background: white;
+  padding: 28px 32px;
+  border-radius: 22px;
+  min-width: 440px;
+  max-width: 540px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
+  animation: popIn 0.25s cubic-bezier(0.2, 0.7, 0.25, 1.1);
+}
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+.modal-content h2 {
+  margin: 0 0 6px;
+  color: #4A3320;
+}
+.modal-content .hint { margin: 0 0 14px; }
+.modal-content select {
+  width: 100%;
+  padding: 8px;
+  font-family: inherit;
+  font-size: 15px;
+  border: 2px solid #FBBF24;
+  border-radius: 12px;
+  background: #FFFBF0;
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 16px;
 }
 .app-header h1 {
   margin: 0;
@@ -193,15 +259,16 @@ html, body {
 /* ---------- Chat view ---------- */
 .chat-log {
   width: 100%;
-  max-width: 720px;
+  max-width: 1100px;
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
   background: white;
   border: 3px solid #FBBF24;
-  border-radius: 16px;
-  padding: 14px;
+  border-radius: 20px;
+  padding: 18px 22px;
   margin-bottom: 12px;
+  box-shadow: 0 6px 20px rgba(180, 83, 9, 0.12);
 }
 .bubble {
   max-width: 80%;
@@ -228,7 +295,7 @@ html, body {
   display: flex;
   gap: 10px;
   width: 100%;
-  max-width: 720px;
+  max-width: 1100px;
   align-items: center;
 }
 
