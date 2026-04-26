@@ -65,6 +65,11 @@
           <span class="tile-label">Robot Dance</span>
           <span class="tile-sub">Pick a dance, watch him go</span>
         </button>
+        <button class="skill-tile" data-skill="notebook">
+          <span class="tile-icon">📓</span>
+          <span class="tile-label">Buddy's Notebook</span>
+          <span class="tile-sub">What Buddy knows about you</span>
+        </button>
       </div>
     </section>
 
@@ -125,6 +130,43 @@
         <button class="send-btn" data-skill-send="curiosity">Send</button>
       </div>
       <div class="status-line" data-skill-status="curiosity"></div>
+    </section>
+
+    <section id="view-notebook" class="view">
+      <button class="back-btn">← Back</button>
+      <div class="buddy-stage small-stage">
+        <div id="buddy-notebook"></div>
+      </div>
+      <h3 class="view-title">📓 Buddy's Notebook</h3>
+      <p class="hint" style="text-align:center; max-width:700px;">
+        Tell Buddy about you so he remembers across visits. He'll call you by name,
+        sneak your favorites into stories and games, and feel like a real friend.
+      </p>
+      <form id="notebook-form" class="notebook-form">
+        <label>Your name
+          <input type="text" name="name" maxlength="40" placeholder="Nick" autocomplete="off">
+        </label>
+        <label>Your age
+          <input type="number" name="age" min="3" max="18" value="8">
+        </label>
+        <label>Favorite color
+          <input type="text" name="favorite_color" maxlength="30" placeholder="blue" autocomplete="off">
+        </label>
+        <label>Favorite animal
+          <input type="text" name="favorite_animal" maxlength="30" placeholder="dinosaur" autocomplete="off">
+        </label>
+        <label>Favorite food
+          <input type="text" name="favorite_food" maxlength="40" placeholder="pizza" autocomplete="off">
+        </label>
+        <label class="full-width">Stuff you love (Lego, soccer, your dog Rex, etc.)
+          <input type="text" name="loves" maxlength="120" placeholder="Lego, dinosaurs, my dog Max" autocomplete="off">
+        </label>
+        <div class="notebook-actions full-width">
+          <span id="notebook-saved-msg"></span>
+          <button type="submit" class="send-btn">💾 Save</button>
+        </div>
+      </form>
+      <div id="notebook-stats" class="notebook-stats"></div>
     </section>
 
     <section id="view-dance" class="view">

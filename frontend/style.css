@@ -266,6 +266,61 @@ html, body {
   font-size: 24px;
 }
 
+/* Buddy's Notebook form */
+.notebook-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 20px;
+  width: 100%;
+  max-width: 760px;
+  margin-top: 12px;
+}
+.notebook-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-weight: bold;
+  color: #4A3320;
+  font-size: 14px;
+}
+.notebook-form .full-width { grid-column: 1 / -1; }
+.notebook-form input {
+  font-family: inherit;
+  font-size: 17px;
+  padding: 10px 14px;
+  border: 3px solid #FBBF24;
+  border-radius: 12px;
+  background: white;
+}
+.notebook-form input:focus {
+  outline: none;
+  border-color: #3B82F6;
+}
+.notebook-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+  margin-top: 4px;
+}
+#notebook-saved-msg {
+  font-style: italic;
+  color: #16A34A;
+  transition: opacity 0.4s;
+}
+.notebook-stats {
+  margin-top: 18px;
+  padding: 12px 18px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 14px;
+  border: 2px dashed #FBBF24;
+  color: #78350F;
+  font-size: 14px;
+  max-width: 760px;
+  width: 100%;
+}
+.notebook-stats strong { color: #4A3320; }
+
 /* Dance controls */
 .dance-controls {
   display: flex;

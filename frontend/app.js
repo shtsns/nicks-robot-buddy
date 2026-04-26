@@ -27,6 +27,7 @@
     story_time: mountBuddy('buddy-story_time'),
     curiosity: mountBuddy('buddy-curiosity'),
     dance: mountBuddy('buddy-dance'),
+    notebook: mountBuddy('buddy-notebook'),
   };
 
   function setMouth(buddy, open) {
@@ -71,6 +72,7 @@
         case 'curiosity':         showView('view-curiosity'); break;
         case 'robot':             showView('view-robot'); refreshPorts(); break;
         case 'dance':             showView('view-dance'); break;
+        case 'notebook':          showView('view-notebook'); loadNotebook(); break;
       }
       return;
     }
@@ -429,6 +431,70 @@
     stopSpeaking();
     await callApi('emergency_stop');
     danceNarration.textContent = 'STOPPED';
+  });
+
+  // ----- Buddy's Notebook -----
+  const notebookForm = document.getElementById('notebook-form');
+  const notebookSavedMsg = document.getElementById('notebook-saved-msg');
+  const notebookStats = document.getElementById('notebook-stats');
+
+  function formatRelativeDate(iso) {
+    if (!iso) return 'never';
+    try {
+      const then = new Date(iso);
+      const now = new Date();
+      const diffSec = Math.max(0, (now - then) / 1000);
+      if (diffSec < 60) return 'just now';
+      if (diffSec < 3600) return `${Math.round(diffSec / 60)} minutes ago`;
+      if (diffSec < 86400) return `${Math.round(diffSec / 3600)} hours ago`;
+      const days = Math.round(diffSec / 86400);
+      return days === 1 ? 'yesterday' : `${days} days ago`;
+    } catch (e) { return 'a while ago'; }
+  }
+
+  async function loadNotebook() {
+    const memory = await callApi('get_memory');
+    if (!memory || memory.ok === false) {
+      console.warn('[buddy] could not load memory', memory);
+      return;
+    }
+    const kid = memory.kid || {};
+    const stats = memory.stats || {};
+    for (const field of ['name', 'age', 'favorite_color', 'favorite_animal', 'favorite_food', 'loves']) {
+      const input = notebookForm.elements[field];
+      if (input) input.value = kid[field] || (field === 'age' ? 8 : '');
+    }
+    if (notebookStats) {
+      const parts = [];
+      parts.push(`<strong>Sessions played:</strong> ${stats.total_sessions || 0}`);
+      parts.push(`<strong>Messages with Buddy:</strong> ${stats.total_messages || 0}`);
+      parts.push(`<strong>Robot drives:</strong> ${stats.robot_drives || 0}`);
+      if (stats.first_session) parts.push(`<strong>First met:</strong> ${formatRelativeDate(stats.first_session)}`);
+      notebookStats.innerHTML = parts.join(' &nbsp;·&nbsp; ');
+    }
+  }
+
+  notebookForm?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(notebookForm);
+    const kid = {};
+    for (const [k, v] of formData.entries()) {
+      kid[k] = (k === 'age') ? parseInt(v, 10) || 8 : String(v).trim();
+    }
+    const result = await callApi('update_memory', kid);
+    if (result && result.ok) {
+      notebookSavedMsg.textContent = '✅ Saved! Buddy will remember.';
+      notebookSavedMsg.style.opacity = 1;
+      setTimeout(() => { notebookSavedMsg.style.opacity = 0; }, 2500);
+      // Reset all skill histories so the next chat picks up the new memory
+      // immediately (system prompts are rebuilt each turn so this isn't strictly
+      // necessary, but it's a clean break).
+      for (const skill of ['chat', 'twenty_questions', 'story_time', 'curiosity']) {
+        callApi('reset_skill', skill);
+      }
+    } else {
+      notebookSavedMsg.textContent = 'Could not save: ' + (result && result.error || 'unknown');
+    }
   });
 
   // ----- Robot skill -----

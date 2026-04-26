@@ -14,6 +14,7 @@ from typing import Optional
 import anthropic
 
 from . import config, demo_mode
+from .memory import Memory
 
 
 DEMO_GAME_REPLY = (
@@ -29,6 +30,7 @@ class BuddyBrain:
         self._histories: dict[str, list[dict]] = {}
         self._client = None
         self._init_error = None
+        self.memory = Memory()
 
         key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not key:
@@ -53,6 +55,13 @@ class BuddyBrain:
 
     # ---------- internals ----------
 
+    def _build_system_prompt(self, base_prompt: str) -> str:
+        """Prepend memory context to a skill's base system prompt."""
+        memory_block = self.memory.context_for_prompt()
+        if memory_block:
+            return memory_block + "\n\n---\n\n" + base_prompt
+        return base_prompt
+
     def _chat_in_skill(
         self,
         skill_id: str,
@@ -65,6 +74,7 @@ class BuddyBrain:
             # Caller decides which demo fallback to use; default safe message
             return {"ok": True, "text": DEMO_GAME_REPLY, "demo": True}
 
+        full_system = self._build_system_prompt(system_prompt)
         history = self._histories.setdefault(skill_id, [])
         history.append({"role": "user", "content": user_message})
 
@@ -75,7 +85,7 @@ class BuddyBrain:
                 system=[
                     {
                         "type": "text",
-                        "text": system_prompt,
+                        "text": full_system,
                         "cache_control": {"type": "ephemeral"},
                     }
                 ],
@@ -94,6 +104,9 @@ class BuddyBrain:
         # Keep histories bounded so token usage doesn't grow unboundedly per session
         if len(history) > 40:
             del history[: len(history) - 30]
+
+        # Track total messages for stats
+        self.memory.increment_messages()
 
         return {"ok": True, "text": text}
 

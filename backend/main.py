@@ -92,6 +92,17 @@ class API:
         self._brain.reset_skill(skill_id)
         return {"ok": True}
 
+    def get_memory(self) -> dict:
+        """Returns everything Buddy remembers about Nick."""
+        return self._brain.memory.get_all()
+
+    def update_memory(self, kid_data: dict) -> dict:
+        """Update what Buddy knows about Nick (name, age, favorites)."""
+        if not isinstance(kid_data, dict):
+            return {"ok": False, "error": "expected an object"}
+        self._brain.memory.update_kid(kid_data)
+        return {"ok": True, "memory": self._brain.memory.get_all()}
+
     def robot_command(self, message: str) -> dict:
         plan_result = self._brain.plan_robot(message)
         if not plan_result.get("ok"):
@@ -102,6 +113,7 @@ class API:
 
         if actions:
             self._run_actions_in_background(actions)
+            self._brain.memory.increment_robot_drives()
 
         return {"ok": True, "plan": plan}
 
@@ -134,6 +146,7 @@ class API:
             for a in dance["actions"]
         ]
         self._run_actions_in_background(actions)
+        self._brain.memory.increment_robot_drives()
         return {
             "ok": True,
             "name": dance["name"],
