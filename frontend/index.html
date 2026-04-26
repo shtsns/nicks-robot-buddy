@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Nick's Robot Buddy</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header class="app-header">
+    <div class="paw-print">🐾</div>
+    <h1>Nick's Robot Buddy</h1>
+    <div class="paw-print">🐾</div>
+  </header>
+
+  <main id="app">
+
+    <section id="view-picker" class="view active">
+      <div class="buddy-stage small-stage">
+        <div id="buddy-picker"></div>
+      </div>
+      <h2 class="prompt">Hi Nick! What do you wanna do?</h2>
+      <div class="skill-buttons">
+        <button class="skill-btn" data-skill="chat">
+          <span class="skill-icon">🦴</span>
+          <span class="skill-label">Talk to Buddy</span>
+        </button>
+        <button class="skill-btn" data-skill="robot">
+          <span class="skill-icon">🤖</span>
+          <span class="skill-label">Drive the Robot</span>
+        </button>
+      </div>
+    </section>
+
+    <section id="view-chat" class="view">
+      <button class="back-btn">← Back</button>
+      <div class="buddy-stage">
+        <div id="buddy-chat"></div>
+      </div>
+      <div id="chat-log" class="chat-log"></div>
+      <div class="input-bar">
+        <button id="chat-mic" class="mic-btn" title="Hold to talk">🎤</button>
+        <input id="chat-text" type="text" placeholder="Type to Buddy or hold the mic..." autocomplete="off">
+        <button id="chat-send" class="send-btn">Send</button>
+      </div>
+      <div id="chat-status" class="status-line"></div>
+    </section>
+
+    <section id="view-robot" class="view">
+      <button class="back-btn">← Back</button>
+      <div class="buddy-stage small-stage">
+        <div id="buddy-robot"></div>
+      </div>
+      <div class="robot-panel">
+        <div id="robot-connection" class="connection-row">
+          <span id="robot-status-dot" class="status-dot disconnected"></span>
+          <span id="robot-status-text">Robot not connected</span>
+          <select id="robot-port-select"></select>
+          <button id="robot-connect-btn" class="small-btn">Connect</button>
+          <button id="robot-refresh-btn" class="small-btn" title="Refresh ports">↻</button>
+        </div>
+        <p class="hint">Tip: pair the mBot in Windows Bluetooth settings first, then pick its COM port.</p>
+        <div class="input-bar">
+          <button id="robot-mic" class="mic-btn" title="Hold to talk">🎤</button>
+          <input id="robot-text" type="text" placeholder='Try: "Go forward 3 seconds and turn right"' autocomplete="off">
+          <button id="robot-send" class="send-btn">Go!</button>
+        </div>
+        <button id="robot-stop" class="stop-btn">🛑 STOP!</button>
+        <div id="robot-narration" class="narration"></div>
+        <div id="robot-log" class="action-log"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <template id="buddy-template">
+    <svg class="buddy-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+
+      <!-- Body / chest behind the head -->
+      <ellipse cx="200" cy="380" rx="160" ry="55" fill="#E5A560" stroke="#8B5E2A" stroke-width="3"/>
+
+      <!-- Tail behind everything -->
+      <g class="tail-group">
+        <path class="tail" d="M 340 320 Q 385 290 380 240 Q 395 270 388 310 Q 380 335 345 340 Z"
+              fill="#C68A38" stroke="#8B5E2A" stroke-width="2.5"/>
+      </g>
+
+      <!-- Floppy ears: drawn BEFORE the head so the head edges them slightly.
+           Outer <g> gets CSS bounce animation; inner <g> holds the static tilt. -->
+      <g class="ear ear-left">
+        <g transform="rotate(-22 100 200)">
+          <ellipse cx="100" cy="240" rx="42" ry="85"
+                   fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3"/>
+          <ellipse cx="105" cy="245" rx="26" ry="68"
+                   fill="#D89A3F"/>
+        </g>
+      </g>
+      <g class="ear ear-right">
+        <g transform="rotate(22 300 200)">
+          <ellipse cx="300" cy="240" rx="42" ry="85"
+                   fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3"/>
+          <ellipse cx="295" cy="245" rx="26" ry="68"
+                   fill="#D89A3F"/>
+        </g>
+      </g>
+
+      <!-- Head -->
+      <ellipse cx="200" cy="200" rx="135" ry="125"
+               fill="#E5A560" stroke="#8B5E2A" stroke-width="4"/>
+
+      <!-- Cheek/forehead light patch -->
+      <ellipse cx="200" cy="180" rx="105" ry="75" fill="#F5C871" opacity="0.6"/>
+
+      <!-- Snout -->
+      <ellipse cx="200" cy="265" rx="80" ry="55"
+               fill="#FAE8C2" stroke="#C68A38" stroke-width="3"/>
+
+      <!-- Eyes -->
+      <g class="eye eye-left">
+        <ellipse cx="150" cy="195" rx="20" ry="24" fill="#1a1a1a"/>
+        <circle cx="156" cy="188" r="7" fill="#fff"/>
+        <circle cx="146" cy="203" r="3" fill="#fff" opacity="0.8"/>
+      </g>
+      <g class="eye eye-right">
+        <ellipse cx="250" cy="195" rx="20" ry="24" fill="#1a1a1a"/>
+        <circle cx="256" cy="188" r="7" fill="#fff"/>
+        <circle cx="246" cy="203" r="3" fill="#fff" opacity="0.8"/>
+      </g>
+
+      <!-- Nose -->
+      <ellipse cx="200" cy="240" rx="20" ry="15" fill="#1a1a1a"/>
+      <ellipse cx="194" cy="235" rx="6" ry="3" fill="#fff" opacity="0.6"/>
+
+      <!-- Mouth: smile when closed, opens with tongue showing -->
+      <g class="mouth-group">
+        <path class="mouth-path"
+              d="M 170 280 Q 185 295 200 290 Q 215 295 230 280"
+              fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/>
+        <path class="mouth-tongue"
+              d="M 178 290 Q 200 315 222 290 Q 215 308 200 310 Q 185 308 178 290 Z"
+              fill="#E66D7A" stroke="#A8485A" stroke-width="1.5" opacity="0"/>
+      </g>
+
+      <!-- Collar -->
+      <g class="collar">
+        <rect x="105" y="335" width="190" height="24" rx="12"
+              fill="#3B82F6" stroke="#1E40AF" stroke-width="2"/>
+        <circle cx="200" cy="365" r="15" fill="#FBBF24" stroke="#B45309" stroke-width="2"/>
+        <text x="200" y="371" text-anchor="middle"
+              font-family="Georgia, serif" font-size="16" font-weight="bold" fill="#7C2D12">B</text>
+      </g>
+    </svg>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
