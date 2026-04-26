@@ -1,7 +1,8 @@
-"""Wrapper around the Anthropic SDK for Buddy's chat and robot skills.
+"""Wrapper around the Anthropic SDK for Buddy's many skills.
 
-Uses prompt caching on the long, stable system prompts (saves ~90% on repeat calls)
-and structured outputs to guarantee valid JSON for robot actions.
+Each skill has its own conversation history so 20 Questions doesn't bleed into
+Story Time. Demo mode (no API key) falls back to a phrasebook for plain chat
+and a polite "ask a grown-up to set up the API key" for the games.
 """
 
 from __future__ import annotations
@@ -15,9 +16,17 @@ import anthropic
 from . import config, demo_mode
 
 
+DEMO_GAME_REPLY = (
+    "*tilts head* Buddy's smart brain isn't on yet for this game! "
+    "Ask a grown-up to set up the API key, then we can play. "
+    "Want to talk to me instead? Hit the back button!"
+)
+
+
 class BuddyBrain:
     def __init__(self, api_key: Optional[str] = None):
-        self._chat_history: list[dict] = []
+        # skill_id -> list of {role, content} dicts
+        self._histories: dict[str, list[dict]] = {}
         self._client = None
         self._init_error = None
 
@@ -42,42 +51,91 @@ class BuddyBrain:
     def init_error(self) -> Optional[str]:
         return self._init_error
 
-    def reset_chat(self) -> None:
-        self._chat_history = []
+    # ---------- internals ----------
 
-    def chat(self, user_message: str) -> dict:
+    def _chat_in_skill(
+        self,
+        skill_id: str,
+        system_prompt: str,
+        user_message: str,
+        max_tokens: int = 512,
+    ) -> dict:
+        """Chat with Claude using a per-skill history. Returns {ok, text}."""
         if not self._client:
-            return {"ok": True, "text": demo_mode.chat_reply(user_message), "demo": True}
+            # Caller decides which demo fallback to use; default safe message
+            return {"ok": True, "text": DEMO_GAME_REPLY, "demo": True}
 
-        self._chat_history.append({"role": "user", "content": user_message})
+        history = self._histories.setdefault(skill_id, [])
+        history.append({"role": "user", "content": user_message})
 
         try:
             response = self._client.messages.create(
                 model=config.CHAT_MODEL,
-                max_tokens=512,
+                max_tokens=max_tokens,
                 system=[
                     {
                         "type": "text",
-                        "text": config.BUDDY_CHAT_SYSTEM,
+                        "text": system_prompt,
                         "cache_control": {"type": "ephemeral"},
                     }
                 ],
-                messages=self._chat_history,
+                messages=history,
             )
         except anthropic.APIError as e:
-            self._chat_history.pop()
+            history.pop()
             return {"ok": False, "error": f"API error: {e}"}
         except Exception as e:
-            self._chat_history.pop()
+            history.pop()
             return {"ok": False, "error": f"Something went wrong: {e}"}
 
         text = next((b.text for b in response.content if b.type == "text"), "")
-        self._chat_history.append({"role": "assistant", "content": text})
+        history.append({"role": "assistant", "content": text})
 
-        if len(self._chat_history) > 40:
-            self._chat_history = self._chat_history[-30:]
+        # Keep histories bounded so token usage doesn't grow unboundedly per session
+        if len(history) > 40:
+            del history[: len(history) - 30]
 
         return {"ok": True, "text": text}
+
+    def reset_skill(self, skill_id: str) -> None:
+        self._histories.pop(skill_id, None)
+
+    def reset_chat(self) -> None:
+        """Back-compat alias for the chat skill."""
+        self.reset_skill("chat")
+
+    # ---------- public skill methods ----------
+
+    def chat(self, user_message: str) -> dict:
+        if not self._client:
+            return {"ok": True, "text": demo_mode.chat_reply(user_message), "demo": True}
+        return self._chat_in_skill("chat", config.BUDDY_CHAT_SYSTEM, user_message, max_tokens=512)
+
+    def twenty_questions(self, user_message: str) -> dict:
+        return self._chat_in_skill(
+            "twenty_questions",
+            config.BUDDY_20Q_SYSTEM,
+            user_message,
+            max_tokens=300,
+        )
+
+    def story_time(self, user_message: str) -> dict:
+        return self._chat_in_skill(
+            "story_time",
+            config.BUDDY_STORY_SYSTEM,
+            user_message,
+            max_tokens=400,
+        )
+
+    def curiosity(self, user_message: str) -> dict:
+        return self._chat_in_skill(
+            "curiosity",
+            config.BUDDY_CURIOSITY_SYSTEM,
+            user_message,
+            max_tokens=500,
+        )
+
+    # ---------- robot ----------
 
     def plan_robot(self, user_message: str) -> dict:
         if not self._client:

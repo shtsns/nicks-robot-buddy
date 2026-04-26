@@ -34,14 +34,36 @@
         <div id="buddy-picker"></div>
       </div>
       <h2 class="prompt">Hi Nick! What do you wanna do?</h2>
-      <div class="skill-buttons">
-        <button class="skill-btn" data-skill="chat">
-          <span class="skill-icon">🦴</span>
-          <span class="skill-label">Talk to Buddy</span>
+      <div class="skill-tiles">
+        <button class="skill-tile" data-skill="chat">
+          <span class="tile-icon">🦴</span>
+          <span class="tile-label">Talk to Buddy</span>
+          <span class="tile-sub">Chat about anything</span>
         </button>
-        <button class="skill-btn" data-skill="robot">
-          <span class="skill-icon">🤖</span>
-          <span class="skill-label">Drive the Robot</span>
+        <button class="skill-tile" data-skill="twenty_questions">
+          <span class="tile-icon">🎯</span>
+          <span class="tile-label">20 Questions</span>
+          <span class="tile-sub">Guess what Buddy's thinking</span>
+        </button>
+        <button class="skill-tile" data-skill="story_time">
+          <span class="tile-icon">📖</span>
+          <span class="tile-label">Story Time</span>
+          <span class="tile-sub">Make up a silly story together</span>
+        </button>
+        <button class="skill-tile" data-skill="curiosity">
+          <span class="tile-icon">🔭</span>
+          <span class="tile-label">Tell Me About...</span>
+          <span class="tile-sub">Dinosaurs, space, anything!</span>
+        </button>
+        <button class="skill-tile" data-skill="robot">
+          <span class="tile-icon">🤖</span>
+          <span class="tile-label">Drive the Robot</span>
+          <span class="tile-sub">Make the mBot move</span>
+        </button>
+        <button class="skill-tile" data-skill="dance">
+          <span class="tile-icon">💃</span>
+          <span class="tile-label">Robot Dance</span>
+          <span class="tile-sub">Pick a dance, watch him go</span>
         </button>
       </div>
     </section>
@@ -58,6 +80,66 @@
         <button id="chat-send" class="send-btn">Send</button>
       </div>
       <div id="chat-status" class="status-line"></div>
+    </section>
+
+    <section id="view-twenty_questions" class="view" data-skill="twenty_questions">
+      <button class="back-btn">← Back</button>
+      <div class="buddy-stage">
+        <div id="buddy-twenty_questions"></div>
+      </div>
+      <h3 class="view-title">🎯 20 Questions</h3>
+      <div class="chat-log" id="log-twenty_questions"></div>
+      <div class="input-bar">
+        <button class="mic-btn" data-skill-mic="twenty_questions" title="Hold to talk">🎤</button>
+        <input class="skill-input" data-skill-input="twenty_questions" type="text" placeholder='Ask Buddy a yes/no question...' autocomplete="off">
+        <button class="send-btn" data-skill-send="twenty_questions">Send</button>
+      </div>
+      <div class="status-line" data-skill-status="twenty_questions"></div>
+    </section>
+
+    <section id="view-story_time" class="view" data-skill="story_time">
+      <button class="back-btn">← Back</button>
+      <div class="buddy-stage">
+        <div id="buddy-story_time"></div>
+      </div>
+      <h3 class="view-title">📖 Story Time</h3>
+      <div class="chat-log" id="log-story_time"></div>
+      <div class="input-bar">
+        <button class="mic-btn" data-skill-mic="story_time" title="Hold to talk">🎤</button>
+        <input class="skill-input" data-skill-input="story_time" type="text" placeholder="What kind of story? Add a sentence..." autocomplete="off">
+        <button class="send-btn" data-skill-send="story_time">Send</button>
+      </div>
+      <div class="status-line" data-skill-status="story_time"></div>
+    </section>
+
+    <section id="view-curiosity" class="view" data-skill="curiosity">
+      <button class="back-btn">← Back</button>
+      <div class="buddy-stage">
+        <div id="buddy-curiosity"></div>
+      </div>
+      <h3 class="view-title">🔭 Tell Me About...</h3>
+      <div class="chat-log" id="log-curiosity"></div>
+      <div class="input-bar">
+        <button class="mic-btn" data-skill-mic="curiosity" title="Hold to talk">🎤</button>
+        <input class="skill-input" data-skill-input="curiosity" type="text" placeholder="Ask Buddy about anything: dinosaurs, planets, sharks..." autocomplete="off">
+        <button class="send-btn" data-skill-send="curiosity">Send</button>
+      </div>
+      <div class="status-line" data-skill-status="curiosity"></div>
+    </section>
+
+    <section id="view-dance" class="view">
+      <button class="back-btn">← Back</button>
+      <div class="buddy-stage">
+        <div id="buddy-dance"></div>
+      </div>
+      <h3 class="view-title">💃 Robot Dance Party</h3>
+      <p class="hint" style="text-align:center;">Connect the robot first in "Drive the Robot", then come back here and hit DANCE!</p>
+      <div class="dance-controls">
+        <button id="dance-go" class="big-btn">🕺 DANCE!</button>
+        <button id="dance-stop" class="stop-btn">🛑 STOP</button>
+      </div>
+      <div class="narration" id="dance-narration"></div>
+      <div class="action-log" id="dance-log"></div>
     </section>
 
     <section id="view-robot" class="view">

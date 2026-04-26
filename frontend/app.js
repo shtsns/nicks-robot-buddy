@@ -23,6 +23,10 @@
     picker: mountBuddy('buddy-picker'),
     chat: mountBuddy('buddy-chat'),
     robot: mountBuddy('buddy-robot'),
+    twenty_questions: mountBuddy('buddy-twenty_questions'),
+    story_time: mountBuddy('buddy-story_time'),
+    curiosity: mountBuddy('buddy-curiosity'),
+    dance: mountBuddy('buddy-dance'),
   };
 
   function setMouth(buddy, open) {
@@ -50,17 +54,24 @@
   const views = document.querySelectorAll('.view');
   function showView(id) {
     views.forEach(v => v.classList.toggle('active', v.id === id));
+    document.dispatchEvent(new CustomEvent('viewchange', { detail: { id } }));
   }
 
   // Use document-level delegation so handlers can't be missed by timing or
   // re-renders. Keep the per-element listeners as a belt-and-suspenders backup.
   document.addEventListener('click', (e) => {
-    const skillBtn = e.target.closest('.skill-btn');
-    if (skillBtn) {
-      const skill = skillBtn.dataset.skill;
-      console.log('[buddy] skill click:', skill);
-      if (skill === 'chat') showView('view-chat');
-      else if (skill === 'robot') { showView('view-robot'); refreshPorts(); }
+    const tile = e.target.closest('.skill-tile');
+    if (tile) {
+      const skill = tile.dataset.skill;
+      console.log('[buddy] tile click:', skill);
+      switch (skill) {
+        case 'chat':              showView('view-chat'); break;
+        case 'twenty_questions':  showView('view-twenty_questions'); break;
+        case 'story_time':        showView('view-story_time'); break;
+        case 'curiosity':         showView('view-curiosity'); break;
+        case 'robot':             showView('view-robot'); refreshPorts(); break;
+        case 'dance':             showView('view-dance'); break;
+      }
       return;
     }
     const backBtn = e.target.closest('.back-btn');
@@ -311,7 +322,114 @@
   function setupMics() {
     attachMic(chatMic, chatInput, chatStatus, () => sendChat(), buddies.chat);
     attachMic(robotMic, robotInput, null, () => sendRobotCommand(), buddies.robot);
+    // New chat-like skills use data-* attributes for their controls
+    setupChatLikeSkill('twenty_questions');
+    setupChatLikeSkill('story_time');
+    setupChatLikeSkill('curiosity');
   }
+
+  // Generic setup for chat-like skills (20 Questions, Story Time, Curiosity).
+  // Each uses data-skill-* attributes to find its input/send/mic/log/status.
+  const skillSetupCalled = new Set();
+  function setupChatLikeSkill(skillId) {
+    if (skillSetupCalled.has(skillId)) return;
+    skillSetupCalled.add(skillId);
+
+    const log = document.getElementById('log-' + skillId);
+    const input = document.querySelector(`[data-skill-input="${skillId}"]`);
+    const send = document.querySelector(`[data-skill-send="${skillId}"]`);
+    const mic = document.querySelector(`[data-skill-mic="${skillId}"]`);
+    const status = document.querySelector(`[data-skill-status="${skillId}"]`);
+    const buddy = buddies[skillId];
+
+    if (!log || !input || !send) {
+      console.warn('[buddy] skill controls missing for', skillId);
+      return;
+    }
+
+    function appendBubble(who, text) {
+      const div = document.createElement('div');
+      div.className = 'bubble ' + who;
+      div.textContent = text;
+      log.appendChild(div);
+      log.scrollTop = log.scrollHeight;
+    }
+
+    let firstMessageSent = false;
+
+    async function sendMessage(text) {
+      if (!text) text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+      appendBubble('you', text);
+      status.textContent = '🦴 Buddy is thinking...';
+      send.disabled = true;
+      if (buddy) buddy.classList.add('thinking');
+
+      const result = await callApi(skillId, text);
+      send.disabled = false;
+      status.textContent = '';
+      if (buddy) buddy.classList.remove('thinking');
+
+      if (!result.ok) {
+        appendBubble('buddy', '*tilts head* ' + (result.error || 'Buddy got confused'));
+        return;
+      }
+      appendBubble('buddy', result.text);
+      speak(result.text, buddy);
+      firstMessageSent = true;
+    }
+
+    send.addEventListener('click', () => sendMessage());
+    input.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendMessage(); });
+
+    if (mic) attachMic(mic, input, status, () => sendMessage(), buddy);
+
+    // Auto-greet when entering this view for the first time
+    document.addEventListener('viewchange', (e) => {
+      if (e.detail.id === 'view-' + skillId && !firstMessageSent && log.children.length === 0) {
+        // Send a quiet "hi" so Buddy gives the intro for the game/activity
+        sendMessage("Hi Buddy! Let's start.");
+      }
+    });
+  }
+
+  // Robot Dance wiring
+  const danceGoBtn = document.getElementById('dance-go');
+  const danceStopBtn = document.getElementById('dance-stop');
+  const danceNarration = document.getElementById('dance-narration');
+  const danceLog = document.getElementById('dance-log');
+  window.onRobotLog = (line) => {
+    // Reuse for both robot view AND dance view
+    const time = new Date().toLocaleTimeString();
+    if (danceLog) {
+      danceLog.textContent += `[${time}] ${line}\n`;
+      danceLog.scrollTop = danceLog.scrollHeight;
+    }
+    if (typeof robotLog !== 'undefined' && robotLog) {
+      robotLog.textContent += `[${time}] ${line}\n`;
+      robotLog.scrollTop = robotLog.scrollHeight;
+    }
+  };
+
+  danceGoBtn?.addEventListener('click', async () => {
+    danceNarration.textContent = '*excited puppy noises*';
+    danceGoBtn.disabled = true;
+    const result = await callApi('robot_dance');
+    danceGoBtn.disabled = false;
+    if (result.ok) {
+      danceNarration.textContent = result.narration + ' (' + result.name + ')';
+      speak(result.narration, buddies.dance);
+    } else {
+      danceNarration.textContent = result.error || 'Couldn\'t dance';
+    }
+  });
+
+  danceStopBtn?.addEventListener('click', async () => {
+    stopSpeaking();
+    await callApi('emergency_stop');
+    danceNarration.textContent = 'STOPPED';
+  });
 
   // ----- Robot skill -----
   const robotLog = document.getElementById('robot-log');
@@ -332,8 +450,8 @@
     robotLog.scrollTop = robotLog.scrollHeight;
   }
 
-  // Backend pushes log lines through these globals
-  window.onRobotLog = logToRobotPanel;
+  // window.onRobotLog is set up earlier in the dance-wiring section so it
+  // fans out to BOTH the dance log and the robot log. Don't overwrite it here.
   window.onRobotDone = () => { robotNarration.textContent = robotNarration.textContent + ' ✅'; };
 
   async function refreshPorts() {

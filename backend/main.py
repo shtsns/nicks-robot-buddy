@@ -75,8 +75,21 @@ class API:
     def chat(self, message: str) -> dict:
         return self._brain.chat(message)
 
+    def twenty_questions(self, message: str) -> dict:
+        return self._brain.twenty_questions(message)
+
+    def story_time(self, message: str) -> dict:
+        return self._brain.story_time(message)
+
+    def curiosity(self, message: str) -> dict:
+        return self._brain.curiosity(message)
+
     def reset_chat(self) -> dict:
         self._brain.reset_chat()
+        return {"ok": True}
+
+    def reset_skill(self, skill_id: str) -> dict:
+        self._brain.reset_skill(skill_id)
         return {"ok": True}
 
     def robot_command(self, message: str) -> dict:
@@ -111,6 +124,21 @@ class API:
     def emergency_stop(self) -> dict:
         self._robot.stop()
         return {"ok": True}
+
+    def robot_dance(self) -> dict:
+        """Picks a random predefined dance sequence and runs it."""
+        import random
+        dance = random.choice(config.ROBOT_DANCES)
+        actions = [
+            RobotAction(action=a["action"], seconds=a.get("seconds", 0))
+            for a in dance["actions"]
+        ]
+        self._run_actions_in_background(actions)
+        return {
+            "ok": True,
+            "name": dance["name"],
+            "narration": dance["narration"],
+        }
 
 
 def main() -> None:
