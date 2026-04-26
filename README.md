@@ -14,20 +14,38 @@ The robot side runs in **dry-run** until you connect a paired mBot, so the app i
 
 ## First-time setup on Nick's laptop
 
-Open Command Prompt and run these three lines (copy/paste all at once is fine):
+**Important:** run each line *one at a time* (press Enter between them). Pasting all at once collapses the line breaks.
 
+### PowerShell (default on Windows 11)
+
+```powershell
+winget install --id Git.Git -e --source winget --silent --accept-package-agreements --accept-source-agreements
 ```
-winget install Git.Git --silent --accept-package-agreements --accept-source-agreements --scope user
+```powershell
+git clone https://github.com/shtsns/nicks-robot-buddy.git "$env:USERPROFILE\Desktop\NicksRobotBuddy"
+```
+```powershell
+& "$env:USERPROFILE\Desktop\NicksRobotBuddy\INSTALL.bat"
+```
+
+### Command Prompt (if you prefer cmd)
+
+```cmd
+winget install --id Git.Git -e --source winget --silent --accept-package-agreements --accept-source-agreements
+```
+```cmd
 git clone https://github.com/shtsns/nicks-robot-buddy.git "%USERPROFILE%\Desktop\NicksRobotBuddy"
+```
+```cmd
 "%USERPROFILE%\Desktop\NicksRobotBuddy\INSTALL.bat"
 ```
 
 That:
-1. Installs Git (if missing). Takes ~30 seconds.
+1. Installs Git (if missing). Takes ~30 seconds. Skip this line if Git is already installed.
 2. Clones the repo to the desktop.
 3. Runs INSTALL.bat, which auto-installs Python 3.12 and sets up the virtual environment.
 
-After that, **double-click `RUN.bat`** to play. The app opens in **demo mode** so Nick can play immediately.
+After that, **double-click `RUN.bat`** in the `NicksRobotBuddy` folder. The app opens in **demo mode** so Nick can play immediately.
 
 ## Getting updates
 
