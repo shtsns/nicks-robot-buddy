@@ -101,13 +101,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
+REM ---- Create desktop shortcut with cute puppy icon ----
+echo.
+echo Creating desktop shortcut...
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0tools\create_shortcut.ps1"
+
 echo.
 echo ===================================================
 echo  Setup complete!
 echo ===================================================
 echo.
-echo  To play right now in DEMO mode (no AI brain yet):
-echo    Double-click RUN.bat
+echo  Look for "Nick's Robot Buddy" on the desktop with
+echo  a puppy icon. Double-click it to play (DEMO mode
+echo  if no API key is set).
 echo.
 echo  To turn on Buddy's smart AI brain:
 echo    1. Get an API key at console.anthropic.com (5 min)

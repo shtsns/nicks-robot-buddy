@@ -43,7 +43,14 @@ html, body {
   padding: 20px;
   overflow-y: auto;
 }
-.view.active { display: flex; }
+.view.active {
+  display: flex;
+  animation: viewFadeIn 0.32s cubic-bezier(0.2, 0.7, 0.25, 1);
+}
+@keyframes viewFadeIn {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
 /* ---------- Buddy avatar ---------- */
 .buddy-stage {
@@ -52,10 +59,27 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
+  animation: breathe 4s ease-in-out infinite;
 }
 .buddy-stage.small-stage { width: 220px; height: 220px; }
 
-.buddy-svg { width: 100%; height: 100%; }
+@keyframes breathe {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.018); }
+}
+
+.buddy-svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 10px 20px rgba(74, 51, 32, 0.22))
+          drop-shadow(0 2px 4px rgba(74, 51, 32, 0.15));
+}
+.buddy-svg.listening { animation: alertPose 0.4s ease-out; }
+@keyframes alertPose {
+  0%   { transform: translateY(0) scale(1); }
+  60%  { transform: translateY(-6px) scale(1.04); }
+  100% { transform: translateY(0) scale(1); }
+}
 
 /* idle animations */
 .tail-group {
@@ -123,14 +147,20 @@ html, body {
   background: white;
   color: #4A3320;
   border: 4px solid #3B82F6;
-  border-radius: 20px;
+  border-radius: 24px;
   cursor: pointer;
-  box-shadow: 0 6px 0 #1E40AF;
-  transition: transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 6px 0 #1E40AF, 0 12px 24px rgba(30, 64, 175, 0.18);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
   min-width: 220px;
 }
-.skill-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 0 #1E40AF; }
-.skill-btn:active { transform: translateY(4px); box-shadow: 0 2px 0 #1E40AF; }
+.skill-btn:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 9px 0 #1E40AF, 0 18px 32px rgba(30, 64, 175, 0.22);
+}
+.skill-btn:active {
+  transform: translateY(4px);
+  box-shadow: 0 2px 0 #1E40AF, 0 4px 8px rgba(30, 64, 175, 0.15);
+}
 .skill-icon { font-size: 64px; }
 .skill-label { font-weight: bold; }
 

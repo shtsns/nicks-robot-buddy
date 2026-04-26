@@ -171,7 +171,7 @@
 
   recognition = setupRecognition();
 
-  function attachMic(micBtn, input, statusEl, onFinal) {
+  function attachMic(micBtn, input, statusEl, onFinal, buddy) {
     if (!recognition) {
       micBtn.disabled = true;
       micBtn.title = 'Voice not supported on this device — use the keyboard';
@@ -187,6 +187,11 @@
         recognition.start();
         recognitionActive = true;
         micBtn.classList.add('listening');
+        if (buddy) {
+          buddy.classList.remove('listening'); // reset so the animation re-fires
+          void buddy.offsetWidth;              // force reflow
+          buddy.classList.add('listening');
+        }
         if (statusEl) statusEl.textContent = 'Listening...';
       } catch (_) { /* already started */ }
     };
@@ -258,7 +263,7 @@
   chatInput.addEventListener('keydown', (e) => {
     if (e.key === 'Enter') sendChat();
   });
-  attachMic(chatMic, chatInput, chatStatus, () => sendChat());
+  attachMic(chatMic, chatInput, chatStatus, () => sendChat(), buddies.chat);
 
   // ----- Robot skill -----
   const robotLog = document.getElementById('robot-log');
@@ -357,7 +362,7 @@
 
   robotSend.addEventListener('click', sendRobotCommand);
   robotInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') sendRobotCommand(); });
-  attachMic(robotMic, robotInput, null, () => sendRobotCommand());
+  attachMic(robotMic, robotInput, null, () => sendRobotCommand(), buddies.robot);
 
   robotStop.addEventListener('click', async () => {
     stopSpeaking();

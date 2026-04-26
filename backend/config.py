@@ -1,7 +1,11 @@
 """Configuration constants and system prompts for Nick's Robot Buddy."""
 
-CHAT_MODEL = "claude-opus-4-7"
-ROBOT_MODEL = "claude-opus-4-7"
+# Locked in to Haiku 4.5 for low API cost during kid play.
+# At ~$0.0017 per chat exchange (vs ~$0.008 for Opus 4.7), 100 messages cost ~17¢.
+# Plenty smart for a kid-safe puppy persona and JSON robot action plans.
+# To upgrade for more "intelligence" later: change to "claude-opus-4-7" or "claude-sonnet-4-6".
+CHAT_MODEL = "claude-haiku-4-5"
+ROBOT_MODEL = "claude-haiku-4-5"
 
 MAX_TOTAL_SECONDS = 30
 MAX_SINGLE_ACTION_SECONDS = 10
