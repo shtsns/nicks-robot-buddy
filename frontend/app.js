@@ -4,9 +4,10 @@
 (function () {
   'use strict';
 
-  const MOUTH_CLOSED = 'M 170 280 Q 185 295 200 290 Q 215 295 230 280';
-  const MOUTH_OPEN_SHAPE = 'M 168 278 Q 200 320 232 278 Q 220 305 200 308 Q 180 305 168 278 Z';
-  const TONGUE_SHAPE = 'M 178 290 Q 200 315 222 290 Q 215 308 200 310 Q 185 308 178 290 Z';
+  // Mouth coords match the new full-body SVG: snout cy=200, mouth around y=215-240.
+  const MOUTH_CLOSED = 'M 178 215 Q 188 225 200 222 Q 212 225 222 215';
+  const MOUTH_OPEN_SHAPE = 'M 176 213 Q 200 245 224 213 Q 215 235 200 236 Q 185 235 176 213 Z';
+  const TONGUE_SHAPE = 'M 184 222 Q 200 240 216 222 Q 210 235 200 236 Q 190 235 184 222 Z';
 
   // ----- Biscuit avatar instances -----
   function mountBiscuit(containerId) {
@@ -56,7 +57,55 @@
   function showView(id) {
     views.forEach(v => v.classList.toggle('active', v.id === id));
     document.dispatchEvent(new CustomEvent('viewchange', { detail: { id } }));
+    // Walk-in animation: when entering a view, the visible Biscuit walks in.
+    requestAnimationFrame(() => {
+      const view = document.getElementById(id);
+      if (!view) return;
+      const svg = view.querySelector('.buddy-svg');
+      if (!svg) return;
+      svg.classList.remove('walking-in');
+      void svg.offsetWidth;
+      svg.classList.add('walking-in');
+    });
   }
+
+  // ----- TRICKS -----
+  const TRICKS = ['sit', 'jump', 'spin', 'wiggle', 'rollover', 'laydown'];
+  const TRICK_DURATIONS = { sit: 1400, jump: 900, spin: 1100, wiggle: 900, rollover: 1400, laydown: 1600 };
+
+  function performTrick(buddy, trick) {
+    if (!buddy) return;
+    if (!trick) trick = TRICKS[Math.floor(Math.random() * TRICKS.length)];
+    // Don't stack tricks
+    for (const t of TRICKS) buddy.classList.remove('trick-' + t);
+    void buddy.offsetWidth;
+    buddy.classList.add('trick-' + trick);
+    const dur = TRICK_DURATIONS[trick] || 1200;
+    setTimeout(() => buddy.classList.remove('trick-' + trick), dur + 50);
+  }
+
+  // Click on Biscuit himself = trick on demand
+  document.addEventListener('click', (e) => {
+    const svg = e.target.closest('.buddy-svg');
+    if (!svg) return;
+    if (svg.classList.contains('thinking')) return;  // don't interrupt thinking
+    if (svg.classList.contains('speaking')) return;  // don't interrupt speech
+    performTrick(svg);
+  });
+
+  // Random idle tricks every 22-40 seconds while the app is open
+  setInterval(() => {
+    const view = document.querySelector('.view.active');
+    if (!view) return;
+    const svg = view.querySelector('.buddy-svg');
+    if (!svg) return;
+    if (svg.classList.contains('thinking')) return;
+    if (svg.classList.contains('speaking')) return;
+    if (svg.classList.contains('listening')) return;
+    // Skip if any trick is currently in progress
+    if (TRICKS.some(t => svg.classList.contains('trick-' + t))) return;
+    performTrick(svg);
+  }, 28000);
 
   // Use document-level delegation so handlers can't be missed by timing or
   // re-renders. Keep the per-element listeners as a belt-and-suspenders backup.

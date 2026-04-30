@@ -147,36 +147,42 @@ html, body {
   100% { transform: translateY(0) scale(1); }
 }
 
-/* idle animations */
+/* idle animations — anchored to the new full-body SVG coords */
 .tail-group {
-  transform-origin: 320px 358px;
+  transform-origin: 305px 285px;
   animation: wag 1.6s ease-in-out infinite;
 }
 .buddy-svg.speaking .tail-group { animation: wag 0.5s ease-in-out infinite; }
 
 @keyframes wag {
-  0%, 100% { transform: rotate(-12deg); }
-  50%      { transform: rotate(15deg); }
+  0%, 100% { transform: rotate(-15deg); }
+  50%      { transform: rotate(20deg); }
 }
 
 .ear-left {
-  transform-origin: 100px 110px;
+  transform-origin: 110px 80px;
   animation: earBounceL 2.8s ease-in-out infinite;
 }
 .ear-right {
-  transform-origin: 300px 110px;
+  transform-origin: 290px 80px;
   animation: earBounceR 2.8s ease-in-out infinite;
 }
 @keyframes earBounceL {
-  0%, 100% { transform: rotate(-3deg); }
-  50%      { transform: rotate(2deg); }
+  0%, 100% { transform: rotate(-2deg); }
+  50%      { transform: rotate(3deg); }
 }
 @keyframes earBounceR {
-  0%, 100% { transform: rotate(3deg); }
-  50%      { transform: rotate(-2deg); }
+  0%, 100% { transform: rotate(2deg); }
+  50%      { transform: rotate(-3deg); }
 }
 
-/* Thinking animation: Buddy bobs his head and tilts slightly */
+/* Front legs: tiny "shifting weight" idle animation */
+.leg-left  { transform-origin: 160px 320px; animation: legBounceL 3.5s ease-in-out infinite; }
+.leg-right { transform-origin: 240px 320px; animation: legBounceR 3.5s ease-in-out infinite; }
+@keyframes legBounceL { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-2deg); } }
+@keyframes legBounceR { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(2deg); } }
+
+/* Thinking animation: Biscuit bobs his head and tilts slightly */
 .buddy-svg.thinking {
   animation: thinkBob 1.2s ease-in-out infinite;
 }
@@ -184,6 +190,86 @@ html, body {
   0%, 100% { transform: rotate(-2deg) translateY(0); }
   50%      { transform: rotate(2deg) translateY(-4px); }
 }
+
+/* Walk-in: when Biscuit appears in a view, he walks in from the left */
+.buddy-svg.walking-in {
+  animation: walkIn 0.7s cubic-bezier(0.2, 0.7, 0.25, 1.05) both;
+}
+@keyframes walkIn {
+  0%   { transform: translateX(-220px) scale(0.85); opacity: 0; }
+  60%  { opacity: 1; }
+  85%  { transform: translateX(8px) scale(1.02); }
+  100% { transform: translateX(0) scale(1); opacity: 1; }
+}
+
+/* ----- TRICKS ----- click on Biscuit (or random idle) triggers one. */
+
+/* Sit: head stays roughly where it is, body squashes down. */
+.buddy-svg.trick-sit .body-group { animation: trickSitBody 1.4s ease-in-out; }
+.buddy-svg.trick-sit .head-group { animation: trickSitHead 1.4s ease-in-out; }
+.buddy-svg.trick-sit .front-legs { animation: trickSitLegs 1.4s ease-in-out; }
+@keyframes trickSitBody {
+  0%, 100% { transform: scaleY(1); transform-origin: 200px 365px; }
+  50%      { transform: scaleY(0.78) translateY(20px); transform-origin: 200px 365px; }
+}
+@keyframes trickSitHead {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(8px); }
+}
+@keyframes trickSitLegs {
+  0%, 100% { transform: scaleY(1); transform-origin: 200px 380px; }
+  50%      { transform: scaleY(0.6) translateY(14px); transform-origin: 200px 380px; }
+}
+
+/* Jump: whole dog leaps */
+.buddy-svg.trick-jump { animation: trickJump 0.9s ease-out; }
+@keyframes trickJump {
+  0%, 100% { transform: translateY(0); }
+  30%      { transform: translateY(-50px) scaleY(1.04); }
+  60%      { transform: translateY(-20px); }
+}
+
+/* Spin: full rotation */
+.buddy-svg.trick-spin { animation: trickSpin 1.1s ease-in-out; }
+@keyframes trickSpin {
+  0%   { transform: rotate(0); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Wiggle: rapid happy sway */
+.buddy-svg.trick-wiggle { animation: trickWiggle 0.9s ease-in-out; }
+@keyframes trickWiggle {
+  0%, 100% { transform: translateX(0) rotate(0); }
+  20%      { transform: translateX(-8px) rotate(-4deg); }
+  40%      { transform: translateX(8px)  rotate(4deg); }
+  60%      { transform: translateX(-8px) rotate(-4deg); }
+  80%      { transform: translateX(8px)  rotate(4deg); }
+}
+
+/* Roll over: barrel-roll style */
+.buddy-svg.trick-rollover { animation: trickRollover 1.4s ease-in-out; }
+@keyframes trickRollover {
+  0%   { transform: rotate(0) translateY(0); }
+  20%  { transform: rotate(-15deg) translateY(-4px); }
+  50%  { transform: rotate(180deg) translateY(20px); }
+  80%  { transform: rotate(345deg) translateY(-4px); }
+  100% { transform: rotate(360deg) translateY(0); }
+}
+
+/* Lay down: head sinks toward paws */
+.buddy-svg.trick-laydown .body-group { animation: trickLayBody 1.6s ease-in-out; }
+.buddy-svg.trick-laydown .head-group { animation: trickLayHead 1.6s ease-in-out; }
+@keyframes trickLayBody {
+  0%, 100% { transform: scaleY(1); transform-origin: 200px 370px; }
+  50%      { transform: scaleY(0.6) translateY(20px); transform-origin: 200px 370px; }
+}
+@keyframes trickLayHead {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  50%      { transform: translateY(50px) rotate(-3deg); }
+}
+
+/* Make Biscuit feel clickable */
+.buddy-svg { cursor: pointer; }
 
 .eye {
   transform-origin: center;

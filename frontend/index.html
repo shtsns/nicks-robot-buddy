@@ -214,82 +214,113 @@
   <template id="buddy-template">
     <svg class="buddy-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
 
-      <!-- Tail: drawn FIRST so it sits behind the body. Curls up-right behind. -->
+      <!-- TAIL: drawn first, sits behind everything else. Curls up-right
+           from the body, well visible past the body's right edge. -->
       <g class="tail-group">
         <path class="tail-outer"
-              d="M 318 358 Q 365 340 385 290 Q 400 240 380 215 Q 360 225 358 270 Q 345 320 318 350 Z"
-              fill="#C68A38" stroke="#8B5E2A" stroke-width="3"/>
+              d="M 305 290 Q 360 270 380 215 Q 395 165 370 145 Q 345 165 350 210 Q 335 255 295 280 Z"
+              fill="#C68A38" stroke="#8B5E2A" stroke-width="3" stroke-linejoin="round"/>
         <path class="tail-inner"
-              d="M 328 350 Q 360 335 372 295 Q 380 255 372 235 Q 365 245 365 275 Q 358 310 332 340 Z"
-              fill="#E0A85A" opacity="0.6"/>
+              d="M 318 280 Q 355 265 365 220 Q 372 185 358 170 Q 350 185 350 215 Q 335 250 312 270 Z"
+              fill="#E0A85A" opacity="0.7"/>
       </g>
 
-      <!-- Body / chest behind the head -->
-      <ellipse cx="200" cy="380" rx="160" ry="55" fill="#E5A560" stroke="#8B5E2A" stroke-width="3"/>
-
-      <!-- Floppy ears: path-based hanging shapes. Drawn BEFORE head so the head's
-           outline edges over them slightly for visual continuity. -->
-      <g class="ear ear-left">
-        <path class="ear-outer"
-              d="M 100 110 Q 30 128 25 220 Q 25 318 78 338 Q 130 318 135 230 Q 135 128 100 110 Z"
-              fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3"/>
-        <path class="ear-inner"
-              d="M 100 132 Q 55 150 50 225 Q 50 305 82 320 Q 120 305 125 232 Q 125 148 100 132 Z"
-              fill="#E0A85A"/>
-      </g>
-      <g class="ear ear-right">
-        <path class="ear-outer"
-              d="M 300 110 Q 370 128 375 220 Q 375 318 322 338 Q 270 318 265 230 Q 265 128 300 110 Z"
-              fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3"/>
-        <path class="ear-inner"
-              d="M 300 132 Q 345 150 350 225 Q 350 305 318 320 Q 280 305 275 232 Q 275 148 300 132 Z"
-              fill="#E0A85A"/>
+      <!-- BACK LEGS (behind body, just hint of them) -->
+      <g class="back-legs">
+        <ellipse cx="120" cy="345" rx="22" ry="32" fill="#C68A38" stroke="#8B5E2A" stroke-width="2.5"/>
+        <ellipse cx="280" cy="345" rx="22" ry="32" fill="#C68A38" stroke="#8B5E2A" stroke-width="2.5"/>
       </g>
 
-      <!-- Head -->
-      <ellipse cx="200" cy="200" rx="135" ry="125"
-               fill="#E5A560" stroke="#8B5E2A" stroke-width="4"/>
-
-      <!-- Cheek/forehead light patch -->
-      <ellipse cx="200" cy="180" rx="105" ry="75" fill="#F5C871" opacity="0.6"/>
-
-      <!-- Snout -->
-      <ellipse cx="200" cy="265" rx="80" ry="55"
-               fill="#FAE8C2" stroke="#C68A38" stroke-width="3"/>
-
-      <!-- Eyes -->
-      <g class="eye eye-left">
-        <ellipse cx="150" cy="195" rx="20" ry="24" fill="#1a1a1a"/>
-        <circle cx="156" cy="188" r="7" fill="#fff"/>
-        <circle cx="146" cy="203" r="3" fill="#fff" opacity="0.8"/>
-      </g>
-      <g class="eye eye-right">
-        <ellipse cx="250" cy="195" rx="20" ry="24" fill="#1a1a1a"/>
-        <circle cx="256" cy="188" r="7" fill="#fff"/>
-        <circle cx="246" cy="203" r="3" fill="#fff" opacity="0.8"/>
+      <!-- BODY: the main torso, big oval -->
+      <g class="body-group">
+        <ellipse class="body-main" cx="200" cy="290" rx="125" ry="80"
+                 fill="#E5A560" stroke="#8B5E2A" stroke-width="3.5"/>
+        <ellipse class="body-belly" cx="200" cy="310" rx="78" ry="52"
+                 fill="#FAE8C2" opacity="0.85"/>
       </g>
 
-      <!-- Nose -->
-      <ellipse cx="200" cy="240" rx="20" ry="15" fill="#1a1a1a"/>
-      <ellipse cx="194" cy="235" rx="6" ry="3" fill="#fff" opacity="0.6"/>
-
-      <!-- Mouth: smile when closed, opens with tongue showing -->
-      <g class="mouth-group">
-        <path class="mouth-path"
-              d="M 170 280 Q 185 295 200 290 Q 215 295 230 280"
-              fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/>
-        <path class="mouth-tongue"
-              d="M 178 290 Q 200 315 222 290 Q 215 308 200 310 Q 185 308 178 290 Z"
-              fill="#E66D7A" stroke="#A8485A" stroke-width="1.5" opacity="0"/>
+      <!-- FRONT LEGS / PAWS: visible in front of body -->
+      <g class="front-legs">
+        <g class="leg leg-left">
+          <ellipse cx="160" cy="345" rx="22" ry="35" fill="#E5A560" stroke="#8B5E2A" stroke-width="3"/>
+          <ellipse cx="160" cy="370" rx="24" ry="14" fill="#8B5E2A"/>
+          <ellipse cx="155" cy="368" rx="3" ry="2" fill="#1a1a1a" opacity="0.5"/>
+          <ellipse cx="165" cy="368" rx="3" ry="2" fill="#1a1a1a" opacity="0.5"/>
+        </g>
+        <g class="leg leg-right">
+          <ellipse cx="240" cy="345" rx="22" ry="35" fill="#E5A560" stroke="#8B5E2A" stroke-width="3"/>
+          <ellipse cx="240" cy="370" rx="24" ry="14" fill="#8B5E2A"/>
+          <ellipse cx="235" cy="368" rx="3" ry="2" fill="#1a1a1a" opacity="0.5"/>
+          <ellipse cx="245" cy="368" rx="3" ry="2" fill="#1a1a1a" opacity="0.5"/>
+        </g>
       </g>
 
-      <!-- Collar -->
+      <!-- COLLAR: between head and body, at the neck -->
       <g class="collar">
-        <rect x="105" y="335" width="190" height="24" rx="12"
+        <rect x="130" y="225" width="140" height="20" rx="10"
               fill="#3B82F6" stroke="#1E40AF" stroke-width="2"/>
-        <circle cx="200" cy="365" r="15" fill="#FBBF24" stroke="#B45309" stroke-width="2"/>
-        <text x="200" y="371" text-anchor="middle"
-              font-family="Georgia, serif" font-size="16" font-weight="bold" fill="#7C2D12">B</text>
+        <circle cx="200" cy="252" r="13" fill="#FBBF24" stroke="#B45309" stroke-width="2"/>
+        <text x="200" y="258" text-anchor="middle"
+              font-family="Georgia, serif" font-size="14" font-weight="bold" fill="#7C2D12">B</text>
+      </g>
+
+      <!-- HEAD GROUP: head + ears + face features. Wrapped so we can
+           apply pose-specific transforms (e.g. lay-head-on-paws trick). -->
+      <g class="head-group">
+        <!-- EARS: drawn before head fill so head edges them slightly -->
+        <g class="ear ear-left">
+          <path class="ear-outer"
+                d="M 110 75 Q 50 95 45 175 Q 50 245 95 250 Q 130 235 138 165 Q 140 95 110 75 Z"
+                fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3" stroke-linejoin="round"/>
+          <path class="ear-inner"
+                d="M 110 95 Q 70 110 65 180 Q 70 230 100 235 Q 122 220 128 170 Q 130 108 110 95 Z"
+                fill="#E0A85A"/>
+        </g>
+        <g class="ear ear-right">
+          <path class="ear-outer"
+                d="M 290 75 Q 350 95 355 175 Q 350 245 305 250 Q 270 235 262 165 Q 260 95 290 75 Z"
+                fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3" stroke-linejoin="round"/>
+          <path class="ear-inner"
+                d="M 290 95 Q 330 110 335 180 Q 330 230 300 235 Q 278 220 272 170 Q 270 108 290 95 Z"
+                fill="#E0A85A"/>
+        </g>
+
+        <!-- HEAD ellipse -->
+        <ellipse class="head" cx="200" cy="155" rx="92" ry="88"
+                 fill="#E5A560" stroke="#8B5E2A" stroke-width="3.5"/>
+
+        <!-- Forehead light patch -->
+        <ellipse cx="200" cy="135" rx="72" ry="55" fill="#F5C871" opacity="0.55"/>
+
+        <!-- SNOUT -->
+        <ellipse class="snout" cx="200" cy="200" rx="58" ry="40"
+                 fill="#FAE8C2" stroke="#C68A38" stroke-width="2.5"/>
+
+        <!-- EYES -->
+        <g class="eye eye-left">
+          <ellipse cx="170" cy="150" rx="14" ry="17" fill="#1a1a1a"/>
+          <circle cx="174" cy="146" r="5" fill="#fff"/>
+          <circle cx="167" cy="156" r="2" fill="#fff" opacity="0.8"/>
+        </g>
+        <g class="eye eye-right">
+          <ellipse cx="230" cy="150" rx="14" ry="17" fill="#1a1a1a"/>
+          <circle cx="234" cy="146" r="5" fill="#fff"/>
+          <circle cx="227" cy="156" r="2" fill="#fff" opacity="0.8"/>
+        </g>
+
+        <!-- NOSE -->
+        <ellipse class="nose" cx="200" cy="180" rx="14" ry="11" fill="#1a1a1a"/>
+        <ellipse cx="196" cy="177" rx="4" ry="2" fill="#fff" opacity="0.55"/>
+
+        <!-- MOUTH (closed = smile, opens via JS during TTS) -->
+        <g class="mouth-group">
+          <path class="mouth-path"
+                d="M 178 215 Q 188 225 200 222 Q 212 225 222 215"
+                fill="none" stroke="#1a1a1a" stroke-width="3" stroke-linecap="round"/>
+          <path class="mouth-tongue"
+                d="M 184 222 Q 200 240 216 222 Q 210 235 200 236 Q 190 235 184 222 Z"
+                fill="#E66D7A" stroke="#A8485A" stroke-width="1.2" opacity="0"/>
+        </g>
       </g>
     </svg>
   </template>
