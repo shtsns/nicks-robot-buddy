@@ -125,13 +125,17 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  animation: breathe 4s ease-in-out infinite;
+  /* Idle motion = breathing + slow horizontal wandering. */
+  animation: idleMotion 11s ease-in-out infinite;
 }
 .buddy-stage.small-stage { width: 220px; height: 220px; }
 
-@keyframes breathe {
-  0%, 100% { transform: scale(1); }
-  50%      { transform: scale(1.018); }
+@keyframes idleMotion {
+  0%   { transform: scale(1) translateX(0); }
+  20%  { transform: scale(1.018) translateX(18px); }
+  40%  { transform: scale(1) translateX(0); }
+  60%  { transform: scale(1.018) translateX(-18px); }
+  100% { transform: scale(1) translateX(0); }
 }
 
 .buddy-svg {
@@ -271,14 +275,22 @@ html, body {
 /* Make Biscuit feel clickable */
 .buddy-svg { cursor: pointer; }
 
+/* Eyes: track the cursor via CSS variables, blink layered on top. The
+   --eye-x / --eye-y variables get set by JS on mousemove. The blink
+   keyframe re-applies translate(var(...)) so the cursor offset isn't
+   nuked when the eye scales for a blink. */
 .eye {
+  --eye-x: 0px;
+  --eye-y: 0px;
   transform-origin: center;
+  transform: translate(var(--eye-x), var(--eye-y));
   animation: blink 5s infinite;
+  transition: transform 0.12s ease-out;
 }
 .eye-right { animation-delay: 0.05s; }
 @keyframes blink {
-  0%, 92%, 100% { transform: scaleY(1); }
-  94%, 96%      { transform: scaleY(0.1); }
+  0%, 92%, 100% { transform: translate(var(--eye-x), var(--eye-y)) scaleY(1); }
+  94%, 96%      { transform: translate(var(--eye-x), var(--eye-y)) scaleY(0.1); }
 }
 
 /* mouth states driven by JS */

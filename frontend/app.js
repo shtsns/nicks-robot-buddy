@@ -93,6 +93,85 @@
     performTrick(svg);
   });
 
+  // ----- VOICE/TEXT TRICK COMMANDS -----
+  // If Nick says/types a trick word ("sit", "jump", "spin"...), short-circuit
+  // the AI roundtrip and just perform the trick. Plays a bark for fun.
+  const TRICK_TRIGGERS = {
+    'sit': 'sit', 'sit down': 'sit', 'good sit': 'sit',
+    'jump': 'jump', 'jump up': 'jump',
+    'spin': 'spin', 'spin around': 'spin', 'twirl': 'spin', 'spin biscuit': 'spin',
+    'wiggle': 'wiggle', 'wiggle butt': 'wiggle', 'shake': 'wiggle',
+    'roll over': 'rollover', 'rollover': 'rollover',
+    'lay down': 'laydown', 'lie down': 'laydown', 'lay': 'laydown', 'down': 'laydown',
+    'dance': 'wiggle',  // generic "dance" maps to wiggle
+  };
+  const TRICK_VERBS = {
+    sit: 'Biscuit sits',
+    jump: 'Biscuit jumps',
+    spin: 'Biscuit spins',
+    wiggle: 'Biscuit wiggles',
+    rollover: 'Biscuit rolls over',
+    laydown: 'Biscuit lies down',
+  };
+
+  function tryTrickCommand(text, buddy, statusEl) {
+    if (!text) return false;
+    let lower = text.toLowerCase().trim();
+    // Strip trailing punctuation
+    lower = lower.replace(/[.!?,]+$/, '');
+    // Strip "(hey/hi/please) biscuit(,)" prefix
+    lower = lower.replace(/^(hey |hi |please )?biscuit[,!.]?\s*/i, '');
+    lower = lower.replace(/^please[,!.]?\s+/i, '');
+    lower = lower.trim();
+
+    const trick = TRICK_TRIGGERS[lower];
+    if (!trick) return false;
+
+    performTrick(buddy, trick);
+    playBark();
+    if (statusEl) {
+      statusEl.textContent = `🐾 ${TRICK_VERBS[trick]}!`;
+      setTimeout(() => { if (statusEl.textContent.startsWith('🐾')) statusEl.textContent = ''; }, 1800);
+    }
+    return true;
+  }
+
+  // ----- CURSOR TRACKING -----
+  // Eyes follow the cursor via CSS variables (composes with the blink keyframe).
+  let _lastEyeUpdate = 0;
+  document.addEventListener('mousemove', (e) => {
+    const now = performance.now();
+    if (now - _lastEyeUpdate < 33) return;  // throttle to ~30fps
+    _lastEyeUpdate = now;
+
+    const view = document.querySelector('.view.active');
+    if (!view) return;
+    const svg = view.querySelector('.buddy-svg');
+    if (!svg) return;
+
+    const rect = svg.getBoundingClientRect();
+    if (!rect.width) return;
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    let dx = (e.clientX - cx) / (rect.width / 2);
+    let dy = (e.clientY - cy) / (rect.height / 2);
+    dx = Math.max(-1, Math.min(1, dx));
+    dy = Math.max(-1, Math.min(1, dy));
+
+    // Eye-pupil offsets in SVG coords (viewBox 0-400). Small range so eyes
+    // don't pop out of the head.
+    const maxDx = 4, maxDy = 3;
+    svg.style.setProperty('--eye-x', `${(dx * maxDx).toFixed(2)}px`);
+    svg.style.setProperty('--eye-y', `${(dy * maxDy).toFixed(2)}px`);
+    // The CSS variable lives on each .eye, but we set on the SVG and let
+    // it inherit. Set explicitly on each eye too in case inheritance
+    // doesn't pick up via the keyframe re-bind:
+    svg.querySelectorAll('.eye').forEach(eye => {
+      eye.style.setProperty('--eye-x', `${(dx * maxDx).toFixed(2)}px`);
+      eye.style.setProperty('--eye-y', `${(dy * maxDy).toFixed(2)}px`);
+    });
+  });
+
   // Random idle tricks every 22-40 seconds while the app is open
   setInterval(() => {
     const view = document.querySelector('.view.active');
@@ -133,6 +212,93 @@
       return;
     }
   });
+
+  // ----- Bark sound synthesis (Web Audio API) -----
+  // We don't bundle audio files. A bark is short enough that we can
+  // synthesize a believable one with an oscillator + filtered noise burst.
+  let _audioCtx = null;
+  function getAudioCtx() {
+    if (!_audioCtx) {
+      try {
+        _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      } catch (e) {
+        console.warn('[buddy] Web Audio not available:', e);
+        return null;
+      }
+    }
+    if (_audioCtx.state === 'suspended') {
+      _audioCtx.resume().catch(() => {});
+    }
+    return _audioCtx;
+  }
+
+  function playBark(opts) {
+    opts = opts || {};
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const now = ctx.currentTime + (opts.delay || 0);
+    const dur = 0.30 + Math.random() * 0.06;
+
+    // Voiced part: falling sawtooth pitch (the "voiced" core of a bark)
+    const osc = ctx.createOscillator();
+    osc.type = 'sawtooth';
+    const startFreq = 270 + Math.random() * 80;
+    osc.frequency.setValueAtTime(startFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(150, now + dur);
+
+    // Noise part: breathy texture
+    const sr = ctx.sampleRate;
+    const noiseBuf = ctx.createBuffer(1, Math.floor(sr * dur), sr);
+    const data = noiseBuf.getChannelData(0);
+    for (let i = 0; i < data.length; i++) {
+      // Pink-ish noise via simple integration of white
+      data[i] = (Math.random() * 2 - 1) * 0.5;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuf;
+
+    // Bandpass filter shapes the formants (mouth resonance)
+    const filter = ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(900, now);
+    filter.frequency.exponentialRampToValueAtTime(450, now + dur);
+    filter.Q.value = 1.2;
+
+    // Envelope: quick attack, fast decay
+    const envOsc = ctx.createGain();
+    envOsc.gain.setValueAtTime(0, now);
+    envOsc.gain.linearRampToValueAtTime(0.55, now + 0.018);
+    envOsc.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    const envNoise = ctx.createGain();
+    envNoise.gain.setValueAtTime(0, now);
+    envNoise.gain.linearRampToValueAtTime(0.4, now + 0.012);
+    envNoise.gain.exponentialRampToValueAtTime(0.001, now + dur);
+
+    osc.connect(envOsc);
+    envOsc.connect(filter);
+    noise.connect(envNoise);
+    envNoise.connect(filter);
+    filter.connect(ctx.destination);
+
+    osc.start(now);
+    noise.start(now);
+    osc.stop(now + dur + 0.05);
+    noise.stop(now + dur + 0.05);
+  }
+
+  function detectDogNoises(text) {
+    return /\b(woo+f+|ruf+f*|bar+k|ar+f|yi+p|yap+|grr+r*)/i.test(text || '');
+  }
+
+  function playBarksForText(text) {
+    if (!text) return;
+    const matches = text.match(/\b(woo+f+|ruf+f*|bar+k|ar+f|yi+p|yap+|grr+r*)/gi) || [];
+    const count = Math.min(matches.length || 0, 3);  // cap at 3 so it doesn't get annoying
+    for (let i = 0; i < count; i++) {
+      playBark({ delay: i * 0.28 });
+    }
+  }
 
   // ----- Speech synthesis (Biscuit talking) -----
   let currentUtterance = null;
@@ -191,6 +357,9 @@
   function speak(text, buddy) {
     stopSpeaking();
     if (!('speechSynthesis' in window)) return;
+    // Play actual bark sound effects for any "woof"/"ruff"/"bark" tokens
+    // in the text BEFORE synthesizing speech for the rest.
+    playBarksForText(text);
     const cleaned = cleanForTTS(text);
     if (!cleaned) return;  // Nothing speakable — pure puppy noises
 
@@ -385,6 +554,11 @@
   async function sendChat() {
     const text = chatInput.value.trim();
     if (!text) return;
+    // Short-circuit single-word trick commands (no AI roundtrip)
+    if (tryTrickCommand(text, buddies.chat, chatStatus)) {
+      chatInput.value = '';
+      return;
+    }
     chatInput.value = '';
     appendBubble('you', text);
     chatStatus.textContent = '🦴 Biscuit is thinking...';
@@ -450,6 +624,11 @@
     async function sendMessage(text) {
       if (!text) text = input.value.trim();
       if (!text) return;
+      // Short-circuit trick commands across all skill views
+      if (tryTrickCommand(text, buddy, status)) {
+        input.value = '';
+        return;
+      }
       input.value = '';
       appendBubble('you', text);
       status.textContent = '🦴 Biscuit is thinking...';
