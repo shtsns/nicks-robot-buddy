@@ -57,10 +57,15 @@ class API:
             "voice_error": self._voice.import_error,
         }
 
-    def listen(self) -> dict:
-        """Record from mic, transcribe to text. Blocking; pywebview runs API
-        methods on a worker thread so this doesn't freeze the UI."""
-        return self._voice.listen_once()
+    def start_listening(self) -> dict:
+        """Begin recording from the mic. Returns immediately so the UI flips
+        to the 'listening' state without delay."""
+        return self._voice.start_listening()
+
+    def stop_listening(self) -> dict:
+        """Stop recording, transcribe, return text. Called on the second
+        mic-button press."""
+        return self._voice.stop_listening()
 
     def list_ports(self) -> list[dict]:
         return list_serial_ports()
@@ -161,7 +166,7 @@ def main() -> None:
 
     api = API()
     window = webview.create_window(
-        title="Nick's Robot Buddy",
+        title="Nick & Biscuit",
         url=str(FRONTEND_INDEX),
         js_api=api,
         width=1100,

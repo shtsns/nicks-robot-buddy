@@ -25,8 +25,8 @@ CHAT_REPLIES = {
         "What's a dog's favorite breakfast? Pooch-cakes! Woof!",
     ],
     r"\b(your name|who are you|what's your name)\b": [
-        "I'm Buddy! Best puppy in the whole world *puffs out chest*",
-        "Buddy! That's me! Wanna scratch behind my ears?",
+        "I'm Biscuit! Best puppy in the whole world *puffs out chest*",
+        "Biscuit! That's me! Wanna scratch behind my ears?",
     ],
     r"\b(love you|love ya)\b": [
         "Awww WOOF! I love you SO much, Nick! *tail goes 100mph*",
@@ -51,9 +51,9 @@ CHAT_REPLIES = {
 }
 
 DEFAULT_REPLIES = [
-    "Hmm! *tilts head* Buddy doesn't quite get that one — try asking a grown-up to set up my AI brain so I can be smarter!",
+    "Hmm! *tilts head* Biscuit doesn't quite get that one — try asking a grown-up to set up my AI brain so I can be smarter!",
     "*puzzled puppy noises* Tell me about dogs, or robots, or your favorite snack!",
-    "Woof! Buddy is in DEMO mode right now. I can do simple stuff! Try saying 'tell me a joke' or 'I love you'!",
+    "Woof! Biscuit is in DEMO mode right now. I can do simple stuff! Try saying 'tell me a joke' or 'I love you'!",
     "*wags tail* I'm just a sleepy demo puppy until my AI brain wakes up. Want to drive the robot instead?",
 ]
 
@@ -127,7 +127,7 @@ def robot_plan(message: str) -> dict:
     if not actions:
         return {
             "actions": [],
-            "narration": "*tilts head* Buddy didn't catch that. Try 'go forward 3 seconds' or 'turn right'!",
+            "narration": "*tilts head* Biscuit didn't catch that. Try 'go forward 3 seconds' or 'turn right'!",
         }
 
     narration = "Demo mode! Doing it: " + " then ".join(

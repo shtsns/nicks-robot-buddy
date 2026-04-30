@@ -17,14 +17,17 @@ if (-not (Test-Path $iconPath)) {
 }
 
 $desktop = [Environment]::GetFolderPath("Desktop")
-$shortcutPath = Join-Path $desktop "Nick's Robot Buddy.lnk"
+$shortcutPath = Join-Path $desktop "Nick & Biscuit.lnk"
+# Remove the old "Nick's Robot Buddy" shortcut if it exists from a prior install
+$oldShortcut = Join-Path $desktop "Nick's Robot Buddy.lnk"
+if (Test-Path $oldShortcut) { Remove-Item $oldShortcut -Force -ErrorAction SilentlyContinue }
 
 $wsh = New-Object -ComObject WScript.Shell
 $shortcut = $wsh.CreateShortcut($shortcutPath)
 $shortcut.TargetPath = $runBat
 $shortcut.WorkingDirectory = $projectRoot
 $shortcut.IconLocation = "$iconPath,0"
-$shortcut.Description = "Talk to Buddy and drive Nick's robot!"
+$shortcut.Description = "Talk to Biscuit and drive Nick's robot!"
 $shortcut.WindowStyle = 7  # Minimized — RUN.bat itself launches a windowless pythonw
 $shortcut.Save()
 

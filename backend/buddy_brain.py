@@ -1,4 +1,4 @@
-"""Wrapper around the Anthropic SDK for Buddy's many skills.
+"""Wrapper around the Anthropic SDK for Biscuit's many skills.
 
 Each skill has its own conversation history so 20 Questions doesn't bleed into
 Story Time. Demo mode (no API key) falls back to a phrasebook for plain chat
@@ -18,13 +18,13 @@ from .memory import Memory
 
 
 DEMO_GAME_REPLY = (
-    "*tilts head* Buddy's smart brain isn't on yet for this game! "
+    "*tilts head* Biscuit's smart brain isn't on yet for this game! "
     "Ask a grown-up to set up the API key, then we can play. "
     "Want to talk to me instead? Hit the back button!"
 )
 
 
-class BuddyBrain:
+class BuddyBrain:  # class name kept for code stability; the persona is "Biscuit"
     def __init__(self, api_key: Optional[str] = None):
         # skill_id -> list of {role, content} dicts
         self._histories: dict[str, list[dict]] = {}
@@ -34,7 +34,7 @@ class BuddyBrain:
 
         key = api_key or os.environ.get("ANTHROPIC_API_KEY")
         if not key:
-            self._init_error = "Demo mode: no API key set. Buddy is using a tiny offline brain."
+            self._init_error = "Demo mode: no API key set. Biscuit is using a tiny offline brain."
             return
         try:
             self._client = anthropic.Anthropic(api_key=key)
@@ -133,11 +133,13 @@ class BuddyBrain:
         )
 
     def story_time(self, user_message: str) -> dict:
+        # Bumped to 1500 so Biscuit can deliver a full ~5-minute story
+        # (700-900 words ≈ 1100-1400 tokens of output).
         return self._chat_in_skill(
             "story_time",
             config.BUDDY_STORY_SYSTEM,
             user_message,
-            max_tokens=400,
+            max_tokens=1500,
         )
 
     def curiosity(self, user_message: str) -> dict:
@@ -184,7 +186,7 @@ class BuddyBrain:
         try:
             plan = json.loads(text)
         except json.JSONDecodeError:
-            return {"ok": False, "error": "Buddy got tongue-tied. Try saying it again?"}
+            return {"ok": False, "error": "Biscuit got tongue-tied. Try saying it again?"}
 
         plan = self._sanitize_plan(plan)
         return {"ok": True, "plan": plan}

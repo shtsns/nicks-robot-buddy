@@ -1,10 +1,10 @@
-"""Persistent memory for Buddy.
+"""Persistent memory for Biscuit.
 
-Stores what Buddy "remembers" about Nick across sessions, plus play stats.
-Lives at %LOCALAPPDATA%\\NicksRobotBuddy\\memory.json — outside OneDrive
+Stores what Biscuit "remembers" about Nick across sessions, plus play stats.
+Lives at %LOCALAPPDATA%\\NicksRobotBiscuit\\memory.json — outside OneDrive
 sync paths, per-user, survives app reinstalls.
 
-The memory data is injected into every skill's system prompt so Buddy
+The memory data is injected into every skill's system prompt so Biscuit
 addresses Nick by name, references his favorites, and feels continuous
 across the chat / 20 Questions / Story Time / Curiosity / Robot views.
 """
@@ -42,7 +42,7 @@ DEFAULT_DATA: dict = {
 def memory_path() -> Path:
     base = os.environ.get("LOCALAPPDATA")
     if base:
-        return Path(base) / "NicksRobotBuddy" / "memory.json"
+        return Path(base) / "NicksRobotBiscuit" / "memory.json"
     # Fallback for non-Windows / odd environments
     return Path.home() / ".nicks-robot-buddy" / "memory.json"
 
@@ -123,9 +123,9 @@ class Memory:
         self.save()
 
     def context_for_prompt(self) -> str:
-        """Build a 'What Buddy knows about Nick' block for system prompt injection.
+        """Build a 'What Biscuit knows about Nick' block for system prompt injection.
 
-        Returns empty string if no name is set yet — Buddy plays neutral.
+        Returns empty string if no name is set yet — Biscuit plays neutral.
         """
         kid = self.data["kid"]
         stats = self.data["stats"]

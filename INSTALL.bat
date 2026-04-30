@@ -111,11 +111,11 @@ echo ===================================================
 echo  Setup complete!
 echo ===================================================
 echo.
-echo  Look for "Nick's Robot Buddy" on the desktop with
+echo  Look for "Nick & Biscuit" on the desktop with
 echo  a puppy icon. Double-click it to play (DEMO mode
 echo  if no API key is set).
 echo.
-echo  To turn on Buddy's smart AI brain:
+echo  To turn on Biscuit's smart AI brain:
 echo    1. Get an API key at console.anthropic.com (5 min)
 echo    2. Open a new Command Prompt and run:
 echo         setx ANTHROPIC_API_KEY "sk-ant-...your-key..."

@@ -1,4 +1,4 @@
-// Nick's Robot Buddy — frontend logic
+// Nick's Robot Biscuit — frontend logic
 // Voice in/out via Web Speech API; UI state machine; bridge to Python via pywebview.
 
 (function () {
@@ -8,8 +8,8 @@
   const MOUTH_OPEN_SHAPE = 'M 168 278 Q 200 320 232 278 Q 220 305 200 308 Q 180 305 168 278 Z';
   const TONGUE_SHAPE = 'M 178 290 Q 200 315 222 290 Q 215 308 200 310 Q 185 308 178 290 Z';
 
-  // ----- Buddy avatar instances -----
-  function mountBuddy(containerId) {
+  // ----- Biscuit avatar instances -----
+  function mountBiscuit(containerId) {
     const tpl = document.getElementById('buddy-template');
     const node = tpl.content.cloneNode(true);
     const root = document.getElementById(containerId);
@@ -20,14 +20,14 @@
   }
 
   const buddies = {
-    picker: mountBuddy('buddy-picker'),
-    chat: mountBuddy('buddy-chat'),
-    robot: mountBuddy('buddy-robot'),
-    twenty_questions: mountBuddy('buddy-twenty_questions'),
-    story_time: mountBuddy('buddy-story_time'),
-    curiosity: mountBuddy('buddy-curiosity'),
-    dance: mountBuddy('buddy-dance'),
-    notebook: mountBuddy('buddy-notebook'),
+    picker: mountBiscuit('buddy-picker'),
+    chat: mountBiscuit('buddy-chat'),
+    robot: mountBiscuit('buddy-robot'),
+    twenty_questions: mountBiscuit('buddy-twenty_questions'),
+    story_time: mountBiscuit('buddy-story_time'),
+    curiosity: mountBiscuit('buddy-curiosity'),
+    dance: mountBiscuit('buddy-dance'),
+    notebook: mountBiscuit('buddy-notebook'),
   };
 
   function setMouth(buddy, open) {
@@ -85,7 +85,7 @@
     }
   });
 
-  // ----- Speech synthesis (Buddy talking) -----
+  // ----- Speech synthesis (Biscuit talking) -----
   let currentUtterance = null;
   let mouthInterval = null;
 
@@ -119,14 +119,37 @@
     return voices[0];
   }
 
+  // Strip non-speech text (dog noises, asterisk actions, emojis) before TTS.
+  // The text in the bubble keeps them — Nick still SEES the puppy energy.
+  function cleanForTTS(text) {
+    if (!text) return '';
+    let t = text;
+    // *...* asterisk-wrapped actions like "*wags tail*" or "*tilts head*"
+    t = t.replace(/\*[^*]+\*/g, ' ');
+    // _..._ underscore actions (rarer but possible)
+    t = t.replace(/_[^_]+_/g, ' ');
+    // Standalone dog noises with optional repetition and punctuation
+    t = t.replace(/\b(woo+f+|ruf+|bar+k|ar+f|yi+p|yap+|grr+|grrr+)+[!.?]*/gi, ' ');
+    // Strip emojis (Unicode emoji ranges + variation selectors)
+    t = t.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27BF}]|[\u{FE00}-\u{FE0F}]|[\u{200D}]/gu, '');
+    // Collapse whitespace and clean up dangling punctuation
+    t = t.replace(/\s+/g, ' ');
+    t = t.replace(/\s+([.!?,])/g, '$1');
+    t = t.replace(/^[\s.,!?]+/, '').replace(/[\s.,!?]+$/, m => m.trim() ? m : '');
+    return t.trim();
+  }
+
   function speak(text, buddy) {
     stopSpeaking();
     if (!('speechSynthesis' in window)) return;
+    const cleaned = cleanForTTS(text);
+    if (!cleaned) return;  // Nothing speakable — pure puppy noises
 
-    const utter = new SpeechSynthesisUtterance(text);
+    const utter = new SpeechSynthesisUtterance(cleaned);
     utter.voice = pickVoice();
-    utter.pitch = 1.4;
-    utter.rate = 1.05;
+    // Softer defaults: lower pitch (less squeaky), slightly slower rate.
+    utter.pitch = 1.05;
+    utter.rate = 0.95;
     utter.volume = 1.0;
 
     utter.onstart = () => {
@@ -202,7 +225,7 @@
   voiceTestBtn.addEventListener('click', () => {
     if (voiceSelect.value) localStorage.setItem(SAVED_VOICE_KEY, voiceSelect.value);
     const target = buddies.chat || buddies.picker;
-    speak("Woof woof! Hi Nick, it's me Buddy! Wanna play?", target);
+    speak("Woof woof! Hi Nick, it's me Biscuit! Wanna play?", target);
   });
 
   // Click outside the modal content closes it
@@ -229,35 +252,51 @@
       return;
     }
 
+    // Local listening state — each mic gets its own.
+    let listening = false;
+
     micBtn.addEventListener('click', async () => {
-      if (voiceListening) return;
-      stopSpeaking();
-      voiceListening = true;
-      micBtn.classList.add('listening');
-      if (buddy) {
-        buddy.classList.remove('listening');
-        void buddy.offsetWidth;
-        buddy.classList.add('listening');
-      }
-      if (statusEl) statusEl.textContent = '🎤 Listening... speak now!';
+      if (!listening) {
+        // ---- START ----
+        // Flip UI state IMMEDIATELY so click feels instant.
+        listening = true;
+        stopSpeaking();
+        micBtn.classList.add('listening');
+        if (buddy) {
+          buddy.classList.remove('listening');
+          void buddy.offsetWidth;
+          buddy.classList.add('listening');
+        }
+        if (statusEl) statusEl.textContent = '🎤 Listening... press the mic again when you\'re done!';
 
-      let result;
-      try {
-        result = await callApi('listen');
-      } catch (e) {
-        result = { ok: false, error: String(e) };
-      }
-
-      voiceListening = false;
-      micBtn.classList.remove('listening');
-
-      if (result && result.ok && result.text) {
-        input.value = result.text;
-        if (statusEl) statusEl.textContent = '';
-        if (onFinal) onFinal(result.text);
+        const result = await callApi('start_listening');
+        if (!result || !result.ok) {
+          // Roll back the UI state if backend refused
+          listening = false;
+          micBtn.classList.remove('listening');
+          if (statusEl) statusEl.textContent = (result && result.error) || 'Voice unavailable';
+        }
       } else {
-        const msg = (result && result.error) || 'Voice unavailable';
-        if (statusEl) statusEl.textContent = msg;
+        // ---- STOP ----
+        // Flip UI state IMMEDIATELY so the second click feels instant too.
+        listening = false;
+        micBtn.classList.remove('listening');
+        if (statusEl) statusEl.textContent = '✏️ Writing it down...';
+
+        let result;
+        try {
+          result = await callApi('stop_listening');
+        } catch (e) {
+          result = { ok: false, error: String(e) };
+        }
+
+        if (result && result.ok && result.text) {
+          input.value = result.text;
+          if (statusEl) statusEl.textContent = '';
+          if (onFinal) onFinal(result.text);
+        } else {
+          if (statusEl) statusEl.textContent = (result && result.error) || 'Try again?';
+        }
       }
     });
   }
@@ -299,7 +338,7 @@
     if (!text) return;
     chatInput.value = '';
     appendBubble('you', text);
-    chatStatus.textContent = '🦴 Buddy is thinking...';
+    chatStatus.textContent = '🦴 Biscuit is thinking...';
     chatSend.disabled = true;
     if (buddies.chat) buddies.chat.classList.add('thinking');
 
@@ -309,7 +348,7 @@
     if (buddies.chat) buddies.chat.classList.remove('thinking');
 
     if (!result.ok) {
-      appendBubble('buddy', '*tilts head* Buddy got confused: ' + (result.error || 'unknown'));
+      appendBubble('buddy', '*tilts head* Biscuit got confused: ' + (result.error || 'unknown'));
       return;
     }
     appendBubble('buddy', result.text);
@@ -364,7 +403,7 @@
       if (!text) return;
       input.value = '';
       appendBubble('you', text);
-      status.textContent = '🦴 Buddy is thinking...';
+      status.textContent = '🦴 Biscuit is thinking...';
       send.disabled = true;
       if (buddy) buddy.classList.add('thinking');
 
@@ -374,7 +413,7 @@
       if (buddy) buddy.classList.remove('thinking');
 
       if (!result.ok) {
-        appendBubble('buddy', '*tilts head* ' + (result.error || 'Buddy got confused'));
+        appendBubble('buddy', '*tilts head* ' + (result.error || 'Biscuit got confused'));
         return;
       }
       appendBubble('buddy', result.text);
@@ -387,11 +426,21 @@
 
     if (mic) attachMic(mic, input, status, () => sendMessage(), buddy);
 
-    // Auto-greet when entering this view for the first time
+    // Auto-greet when entering this view for the first time. We skip
+    // story_time because there Nick PROVIDES the topic — auto-sending "Hi"
+    // would make Biscuit tell a story about saying hi.
+    const skipAutoGreet = new Set(['story_time']);
     document.addEventListener('viewchange', (e) => {
-      if (e.detail.id === 'view-' + skillId && !firstMessageSent && log.children.length === 0) {
-        // Send a quiet "hi" so Buddy gives the intro for the game/activity
-        sendMessage("Hi Buddy! Let's start.");
+      if (e.detail.id !== 'view-' + skillId) return;
+      if (skipAutoGreet.has(skillId)) {
+        // Show a one-time bubble with a hint so the screen isn't blank.
+        if (log.children.length === 0) {
+          appendBubble('buddy', "Tell me what you want a story about! I'll make it up. Try things like 'a flying pizza' or 'a soccer-playing dinosaur'.");
+        }
+        return;
+      }
+      if (!firstMessageSent && log.children.length === 0) {
+        sendMessage("Hi Biscuit! Let's start.");
       }
     });
   }
@@ -433,7 +482,7 @@
     danceNarration.textContent = 'STOPPED';
   });
 
-  // ----- Buddy's Notebook -----
+  // ----- Biscuit's Notebook -----
   const notebookForm = document.getElementById('notebook-form');
   const notebookSavedMsg = document.getElementById('notebook-saved-msg');
   const notebookStats = document.getElementById('notebook-stats');
@@ -467,7 +516,7 @@
     if (notebookStats) {
       const parts = [];
       parts.push(`<strong>Sessions played:</strong> ${stats.total_sessions || 0}`);
-      parts.push(`<strong>Messages with Buddy:</strong> ${stats.total_messages || 0}`);
+      parts.push(`<strong>Messages with Biscuit:</strong> ${stats.total_messages || 0}`);
       parts.push(`<strong>Robot drives:</strong> ${stats.robot_drives || 0}`);
       if (stats.first_session) parts.push(`<strong>First met:</strong> ${formatRelativeDate(stats.first_session)}`);
       notebookStats.innerHTML = parts.join(' &nbsp;·&nbsp; ');
@@ -483,7 +532,7 @@
     }
     const result = await callApi('update_memory', kid);
     if (result && result.ok) {
-      notebookSavedMsg.textContent = '✅ Saved! Buddy will remember.';
+      notebookSavedMsg.textContent = '✅ Saved! Biscuit will remember.';
       notebookSavedMsg.style.opacity = 1;
       setTimeout(() => { notebookSavedMsg.style.opacity = 0; }, 2500);
       // Reset all skill histories so the next chat picks up the new memory
@@ -572,7 +621,7 @@
     const text = robotInput.value.trim();
     if (!text) return;
     robotInput.value = '';
-    robotNarration.textContent = '🦴 Buddy is thinking...';
+    robotNarration.textContent = '🦴 Biscuit is thinking...';
     robotSend.disabled = true;
     if (buddies.robot) buddies.robot.classList.add('thinking');
 
@@ -581,7 +630,7 @@
     if (buddies.robot) buddies.robot.classList.remove('thinking');
 
     if (!result.ok) {
-      robotNarration.textContent = 'Buddy got confused: ' + (result.error || 'unknown');
+      robotNarration.textContent = 'Biscuit got confused: ' + (result.error || 'unknown');
       return;
     }
 
@@ -615,7 +664,7 @@
 
     const status = await callApi('get_status');
     if (status && status.demo_mode) {
-      const msg = status.ai_error || 'Buddy is in demo mode.';
+      const msg = status.ai_error || 'Biscuit is in demo mode.';
       appendBubble('buddy', msg + ' Try saying hi, asking for a joke, or driving the robot!');
     }
     if (status && status.voice_available) {

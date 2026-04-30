@@ -2,14 +2,14 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Nick's Robot Buddy</title>
+  <title>Nick &amp; Biscuit</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
   <header class="app-header">
     <div class="paw-print">🐾</div>
-    <h1>Nick's Robot Buddy</h1>
+    <h1>Nick &amp; Biscuit</h1>
     <div class="paw-print">🐾</div>
     <button id="settings-btn" class="settings-btn" title="Settings">⚙️</button>
   </header>
@@ -17,8 +17,8 @@
   <!-- Settings modal -->
   <div id="settings-modal" class="modal hidden">
     <div class="modal-content">
-      <h2>Buddy's Voice</h2>
-      <p class="hint">Pick a voice and try it on. Buddy remembers your choice.</p>
+      <h2>Biscuit's Voice</h2>
+      <p class="hint">Pick a voice and try it on. Biscuit remembers your choice.</p>
       <select id="voice-select" size="8"></select>
       <div class="modal-actions">
         <button id="voice-test" class="small-btn">▶ Try it</button>
@@ -37,13 +37,13 @@
       <div class="skill-tiles">
         <button class="skill-tile" data-skill="chat">
           <span class="tile-icon">🦴</span>
-          <span class="tile-label">Talk to Buddy</span>
+          <span class="tile-label">Talk to Biscuit</span>
           <span class="tile-sub">Chat about anything</span>
         </button>
         <button class="skill-tile" data-skill="twenty_questions">
           <span class="tile-icon">🎯</span>
           <span class="tile-label">20 Questions</span>
-          <span class="tile-sub">Guess what Buddy's thinking</span>
+          <span class="tile-sub">Guess what Biscuit's thinking</span>
         </button>
         <button class="skill-tile" data-skill="story_time">
           <span class="tile-icon">📖</span>
@@ -67,8 +67,8 @@
         </button>
         <button class="skill-tile" data-skill="notebook">
           <span class="tile-icon">📓</span>
-          <span class="tile-label">Buddy's Notebook</span>
-          <span class="tile-sub">What Buddy knows about you</span>
+          <span class="tile-label">Biscuit's Notebook</span>
+          <span class="tile-sub">What Biscuit knows about you</span>
         </button>
       </div>
     </section>
@@ -81,7 +81,7 @@
       <div id="chat-log" class="chat-log"></div>
       <div class="input-bar">
         <button id="chat-mic" class="mic-btn" title="Hold to talk">🎤</button>
-        <input id="chat-text" type="text" placeholder="Type to Buddy or hold the mic..." autocomplete="off">
+        <input id="chat-text" type="text" placeholder="Type to Biscuit or hold the mic..." autocomplete="off">
         <button id="chat-send" class="send-btn">Send</button>
       </div>
       <div id="chat-status" class="status-line"></div>
@@ -96,7 +96,7 @@
       <div class="chat-log" id="log-twenty_questions"></div>
       <div class="input-bar">
         <button class="mic-btn" data-skill-mic="twenty_questions" title="Hold to talk">🎤</button>
-        <input class="skill-input" data-skill-input="twenty_questions" type="text" placeholder='Ask Buddy a yes/no question...' autocomplete="off">
+        <input class="skill-input" data-skill-input="twenty_questions" type="text" placeholder='Ask Biscuit a yes/no question...' autocomplete="off">
         <button class="send-btn" data-skill-send="twenty_questions">Send</button>
       </div>
       <div class="status-line" data-skill-status="twenty_questions"></div>
@@ -111,7 +111,7 @@
       <div class="chat-log" id="log-story_time"></div>
       <div class="input-bar">
         <button class="mic-btn" data-skill-mic="story_time" title="Hold to talk">🎤</button>
-        <input class="skill-input" data-skill-input="story_time" type="text" placeholder="What kind of story? Add a sentence..." autocomplete="off">
+        <input class="skill-input" data-skill-input="story_time" type="text" placeholder="Tell Biscuit what kind of story you want — like 'a flying dragon' or 'a robot soccer game'" autocomplete="off">
         <button class="send-btn" data-skill-send="story_time">Send</button>
       </div>
       <div class="status-line" data-skill-status="story_time"></div>
@@ -126,7 +126,7 @@
       <div class="chat-log" id="log-curiosity"></div>
       <div class="input-bar">
         <button class="mic-btn" data-skill-mic="curiosity" title="Hold to talk">🎤</button>
-        <input class="skill-input" data-skill-input="curiosity" type="text" placeholder="Ask Buddy about anything: dinosaurs, planets, sharks..." autocomplete="off">
+        <input class="skill-input" data-skill-input="curiosity" type="text" placeholder="Ask Biscuit about anything: dinosaurs, planets, sharks..." autocomplete="off">
         <button class="send-btn" data-skill-send="curiosity">Send</button>
       </div>
       <div class="status-line" data-skill-status="curiosity"></div>
@@ -137,9 +137,9 @@
       <div class="buddy-stage small-stage">
         <div id="buddy-notebook"></div>
       </div>
-      <h3 class="view-title">📓 Buddy's Notebook</h3>
+      <h3 class="view-title">📓 Biscuit's Notebook</h3>
       <p class="hint" style="text-align:center; max-width:700px;">
-        Tell Buddy about you so he remembers across visits. He'll call you by name,
+        Tell Biscuit about you so he remembers across visits. He'll call you by name,
         sneak your favorites into stories and games, and feel like a real friend.
       </p>
       <form id="notebook-form" class="notebook-form">
