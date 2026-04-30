@@ -29,6 +29,7 @@
     curiosity: mountBiscuit('buddy-curiosity'),
     dance: mountBiscuit('buddy-dance'),
     notebook: mountBiscuit('buddy-notebook'),
+    photobooth: mountBiscuit('buddy-photobooth'),
   };
 
   function setMouth(buddy, open) {
@@ -201,6 +202,7 @@
         case 'robot':             showView('view-robot'); refreshPorts(); break;
         case 'dance':             showView('view-dance'); break;
         case 'notebook':          showView('view-notebook'); loadNotebook(); break;
+        case 'photobooth':        showView('view-photobooth'); openPhotobooth(); break;
       }
       return;
     }
@@ -435,13 +437,20 @@
     settingsModal.classList.remove('hidden');
   });
 
+  function persistVoiceChoice(name) {
+    if (!name) return;
+    localStorage.setItem(SAVED_VOICE_KEY, name);
+    // Also save to backend memory so it survives if WebView storage clears.
+    callApi('update_preferences', { voice_name: name });
+  }
+
   settingsCloseBtn.addEventListener('click', () => {
-    if (voiceSelect.value) localStorage.setItem(SAVED_VOICE_KEY, voiceSelect.value);
+    persistVoiceChoice(voiceSelect.value);
     settingsModal.classList.add('hidden');
   });
 
   voiceTestBtn.addEventListener('click', () => {
-    if (voiceSelect.value) localStorage.setItem(SAVED_VOICE_KEY, voiceSelect.value);
+    persistVoiceChoice(voiceSelect.value);
     const target = buddies.chat || buddies.picker;
     speak("Woof woof! Hi Nick, it's me Biscuit! Wanna play?", target);
   });
@@ -449,7 +458,7 @@
   // Click outside the modal content closes it
   settingsModal.addEventListener('click', (e) => {
     if (e.target === settingsModal) {
-      if (voiceSelect.value) localStorage.setItem(SAVED_VOICE_KEY, voiceSelect.value);
+      persistVoiceChoice(voiceSelect.value);
       settingsModal.classList.add('hidden');
     }
   });
@@ -774,6 +783,174 @@
     }
   });
 
+  // ----- PHOTO BOOTH -----
+  let _videoStream = null;
+
+  function getEl(id) { return document.getElementById(id); }
+
+  async function openPhotobooth() {
+    const video = getEl('photobooth-video');
+    const status = getEl('photobooth-status');
+    if (!video) return;
+
+    if (_videoStream) {
+      refreshGallery();
+      return;
+    }
+    if (status) status.textContent = '📷 Starting camera... please allow access';
+    try {
+      _videoStream = await navigator.mediaDevices.getUserMedia({
+        video: { width: { ideal: 1280 }, height: { ideal: 720 }, facingMode: 'user' },
+        audio: false,
+      });
+      video.srcObject = _videoStream;
+      if (status) {
+        status.textContent = 'Smile! Click SNAP! when ready.';
+        setTimeout(() => { status.textContent = ''; }, 3500);
+      }
+    } catch (e) {
+      if (status) status.textContent = '😢 Camera not available: ' + (e.message || 'permission denied');
+    }
+    refreshGallery();
+  }
+
+  function stopPhotobooth() {
+    if (_videoStream) {
+      _videoStream.getTracks().forEach(t => t.stop());
+      _videoStream = null;
+    }
+    const video = getEl('photobooth-video');
+    if (video) video.srcObject = null;
+  }
+
+  // Stop the camera stream when leaving the photo booth view
+  document.addEventListener('viewchange', (e) => {
+    if (e.detail.id !== 'view-photobooth') stopPhotobooth();
+  });
+
+  function svgToImage(svgEl) {
+    return new Promise((resolve, reject) => {
+      try {
+        const cloned = svgEl.cloneNode(true);
+        cloned.querySelectorAll('*').forEach(el => { el.style.animation = 'none'; });
+        const xml = new XMLSerializer().serializeToString(cloned);
+        const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const img = new Image();
+        img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+        img.onerror = (err) => { URL.revokeObjectURL(url); reject(err); };
+        img.src = url;
+      } catch (err) { reject(err); }
+    });
+  }
+
+  async function captureFrame() {
+    const video = getEl('photobooth-video');
+    if (!video || !video.videoWidth) throw new Error('Camera not ready');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+
+    // Mirror the video frame (selfie style)
+    ctx.save();
+    ctx.scale(-1, 1);
+    ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+    ctx.restore();
+
+    // Composite Biscuit overlay in the bottom-right corner
+    try {
+      const svgEl = buddies.photobooth;
+      if (svgEl) {
+        const img = await svgToImage(svgEl);
+        const overlayW = canvas.width * 0.28;
+        const overlayH = overlayW;
+        const margin = canvas.width * 0.03;
+        ctx.drawImage(img, canvas.width - overlayW - margin, canvas.height - overlayH - margin, overlayW, overlayH);
+      }
+    } catch (err) {
+      console.warn('[buddy] biscuit overlay failed:', err);
+    }
+    return canvas.toDataURL('image/jpeg', 0.88);
+  }
+
+  const photoboothSnap = getEl('photobooth-snap');
+  const photoboothFolder = getEl('photobooth-folder');
+  const photoboothFlash = getEl('photobooth-flash');
+  const photoboothPreview = getEl('photobooth-preview');
+  const photoboothPreviewImg = getEl('photobooth-preview-img');
+  const photoboothKeep = getEl('photobooth-keep');
+  const photoboothDiscard = getEl('photobooth-discard');
+  const photoboothGallery = getEl('photobooth-gallery');
+
+  let _pendingDataUrl = null;
+
+  photoboothSnap?.addEventListener('click', async () => {
+    if (!_videoStream) {
+      await openPhotobooth();
+      return;
+    }
+    photoboothSnap.disabled = true;
+    photoboothFlash?.classList.remove('snap');
+    void photoboothFlash?.offsetWidth;
+    photoboothFlash?.classList.add('snap');
+    playBark();
+    try {
+      const dataUrl = await captureFrame();
+      _pendingDataUrl = dataUrl;
+      if (photoboothPreviewImg) photoboothPreviewImg.src = dataUrl;
+      photoboothPreview?.classList.remove('hidden');
+    } catch (err) {
+      const status = getEl('photobooth-status');
+      if (status) status.textContent = 'Capture failed: ' + (err.message || err);
+    } finally {
+      photoboothSnap.disabled = false;
+    }
+  });
+
+  photoboothKeep?.addEventListener('click', async () => {
+    if (!_pendingDataUrl) return;
+    photoboothKeep.disabled = true;
+    const result = await callApi('save_photo', _pendingDataUrl);
+    photoboothKeep.disabled = false;
+    if (result && result.ok) {
+      const status = getEl('photobooth-status');
+      if (status) {
+        status.textContent = '✅ Saved!';
+        setTimeout(() => { status.textContent = ''; }, 2500);
+      }
+      _pendingDataUrl = null;
+      photoboothPreview?.classList.add('hidden');
+      refreshGallery();
+    } else {
+      alert('Save failed: ' + (result && result.error || 'unknown'));
+    }
+  });
+
+  photoboothDiscard?.addEventListener('click', () => {
+    _pendingDataUrl = null;
+    photoboothPreview?.classList.add('hidden');
+  });
+
+  photoboothFolder?.addEventListener('click', () => callApi('open_photos_folder'));
+
+  async function refreshGallery() {
+    if (!photoboothGallery) return;
+    const result = await callApi('list_photos');
+    photoboothGallery.innerHTML = '';
+    if (!result || !result.ok || !result.photos || result.photos.length === 0) {
+      photoboothGallery.innerHTML = '<div class="empty">No photos yet. Hit SNAP! to take your first one with Biscuit.</div>';
+      return;
+    }
+    for (const p of result.photos) {
+      const img = document.createElement('img');
+      img.src = p.data_url;
+      img.alt = p.filename;
+      img.title = p.filename;
+      photoboothGallery.appendChild(img);
+    }
+  }
+
   // ----- Robot skill -----
   const robotLog = document.getElementById('robot-log');
   const robotInput = document.getElementById('robot-text');
@@ -891,6 +1068,17 @@
     }
 
     const status = await callApi('get_status');
+
+    // Restore the voice picker preference from backend memory if local
+    // storage doesn't have it (handles webview storage clears).
+    try {
+      if (!localStorage.getItem(SAVED_VOICE_KEY)) {
+        const mem = await callApi('get_memory');
+        const savedVoice = mem && mem.preferences && mem.preferences.voice_name;
+        if (savedVoice) localStorage.setItem(SAVED_VOICE_KEY, savedVoice);
+      }
+    } catch (e) { /* not fatal */ }
+
     if (status && status.demo_mode) {
       const msg = status.ai_error || 'Biscuit is in demo mode.';
       appendBubble('buddy', msg + ' Try saying hi, asking for a joke, or driving the robot!');

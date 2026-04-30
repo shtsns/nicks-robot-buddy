@@ -65,6 +65,11 @@
           <span class="tile-label">Robot Dance</span>
           <span class="tile-sub">Pick a dance, watch him go</span>
         </button>
+        <button class="skill-tile" data-skill="photobooth">
+          <span class="tile-icon">📸</span>
+          <span class="tile-label">Photo Booth</span>
+          <span class="tile-sub">Take pictures with Biscuit</span>
+        </button>
         <button class="skill-tile" data-skill="notebook">
           <span class="tile-icon">📓</span>
           <span class="tile-label">Biscuit's Notebook</span>
@@ -149,6 +154,9 @@
         <label>Your age
           <input type="number" name="age" min="3" max="18" value="8">
         </label>
+        <label>Your birthday (month / day)
+          <input type="text" name="birthday" maxlength="10" placeholder="e.g. 5/2 for May 2" autocomplete="off">
+        </label>
         <label>Favorite color
           <input type="text" name="favorite_color" maxlength="30" placeholder="blue" autocomplete="off">
         </label>
@@ -167,6 +175,31 @@
         </div>
       </form>
       <div id="notebook-stats" class="notebook-stats"></div>
+    </section>
+
+    <section id="view-photobooth" class="view">
+      <button class="back-btn">← Back</button>
+      <h3 class="view-title">📸 Photo Booth with Biscuit</h3>
+      <div class="photobooth-stage">
+        <video id="photobooth-video" autoplay playsinline muted></video>
+        <div class="photobooth-biscuit-overlay">
+          <div id="buddy-photobooth"></div>
+        </div>
+        <div id="photobooth-flash" class="photobooth-flash"></div>
+        <div id="photobooth-preview" class="photobooth-preview hidden">
+          <img id="photobooth-preview-img" alt="captured photo">
+          <div class="preview-actions">
+            <button id="photobooth-keep" class="big-btn">💾 Save it!</button>
+            <button id="photobooth-discard" class="small-btn">🗑 Try again</button>
+          </div>
+        </div>
+        <div id="photobooth-status" class="photobooth-status">Loading camera...</div>
+      </div>
+      <div class="photobooth-actions">
+        <button id="photobooth-snap" class="big-btn">📷 SNAP!</button>
+        <button id="photobooth-folder" class="small-btn">📂 Open photos folder</button>
+      </div>
+      <div id="photobooth-gallery" class="photobooth-gallery"></div>
     </section>
 
     <section id="view-dance" class="view">

@@ -364,7 +364,123 @@ html, body {
   font-size: 24px;
 }
 
-/* Buddy's Notebook form */
+/* ---------- Photo Booth ---------- */
+.photobooth-stage {
+  position: relative;
+  width: 100%;
+  max-width: 880px;
+  aspect-ratio: 4 / 3;
+  background: #1E293B;
+  border-radius: 22px;
+  overflow: hidden;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.25), inset 0 0 0 4px #FBBF24;
+  margin-top: 8px;
+}
+#photobooth-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transform: scaleX(-1);  /* mirror like a selfie */
+  display: block;
+}
+.photobooth-biscuit-overlay {
+  position: absolute;
+  right: 18px;
+  bottom: 18px;
+  width: 28%;
+  max-width: 220px;
+  pointer-events: none;
+  filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35));
+}
+.photobooth-biscuit-overlay #buddy-photobooth {
+  width: 100%;
+}
+.photobooth-flash {
+  position: absolute;
+  inset: 0;
+  background: white;
+  opacity: 0;
+  pointer-events: none;
+}
+.photobooth-flash.snap { animation: flashAnim 0.45s ease-out; }
+@keyframes flashAnim {
+  0%   { opacity: 0; }
+  10%  { opacity: 0.95; }
+  100% { opacity: 0; }
+}
+
+.photobooth-status {
+  position: absolute;
+  bottom: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.55);
+  color: white;
+  padding: 6px 14px;
+  border-radius: 12px;
+  font-size: 14px;
+  pointer-events: none;
+}
+
+.photobooth-preview {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 14, 8, 0.7);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 20px;
+}
+.photobooth-preview.hidden { display: none; }
+#photobooth-preview-img {
+  max-width: 90%;
+  max-height: 70%;
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  border: 3px solid white;
+}
+.preview-actions {
+  display: flex;
+  gap: 14px;
+}
+
+.photobooth-actions {
+  display: flex;
+  gap: 14px;
+  margin: 14px 0;
+}
+
+.photobooth-gallery {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  width: 100%;
+  max-width: 880px;
+  padding: 8px;
+  background: rgba(255, 255, 255, 0.6);
+  border-radius: 14px;
+  border: 2px dashed #FBBF24;
+  min-height: 80px;
+}
+.photobooth-gallery img {
+  width: 110px;
+  height: 80px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 2px solid #FBBF24;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+}
+.photobooth-gallery .empty {
+  color: #78350F;
+  font-style: italic;
+  width: 100%;
+  text-align: center;
+  padding: 20px;
+}
+
+/* Biscuit's Notebook form */
 .notebook-form {
   display: grid;
   grid-template-columns: 1fr 1fr;
