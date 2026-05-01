@@ -87,8 +87,60 @@ html, body {
   margin-top: 16px;
 }
 
-.diagnostics {
+.api-keys, .diagnostics {
   margin-top: 18px;
+}
+.api-keys {
+  padding: 12px 14px;
+  background: #FFFBF0;
+  border: 2px dashed #FBBF24;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #4A3320;
+}
+.api-keys summary {
+  cursor: pointer;
+  font-weight: bold;
+  user-select: none;
+}
+.api-keys summary:hover { color: #3B82F6; }
+.key-section {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.key-section label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.key-label small { color: #78350F; font-weight: normal; }
+.key-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.key-status {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #94A3B8;
+  flex-shrink: 0;
+}
+.key-status.set { background: #22C55E; box-shadow: 0 0 8px #22C55E; }
+.key-row input {
+  flex: 1;
+  padding: 8px 12px;
+  font-family: 'Consolas', monospace;
+  font-size: 13px;
+  border: 2px solid #FBBF24;
+  border-radius: 10px;
+  background: white;
+}
+.key-row input:focus { outline: none; border-color: #3B82F6; }
+
+.diagnostics {
   padding: 12px 14px;
   background: #FFFBF0;
   border: 2px dashed #FBBF24;

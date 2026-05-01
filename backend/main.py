@@ -124,6 +124,38 @@ class API:
             return {"ok": False}
         return {"ok": True, **u}
 
+    # ---------- API key management (paste-once UI) ----------
+
+    def get_api_keys_status(self) -> dict:
+        """Returns which API keys are currently set and where they came from."""
+        from backend.secrets import get_secrets
+        import os
+        secrets = get_secrets()
+        return {
+            "ok": True,
+            "anthropic": {
+                "set": bool(self._brain.ready),
+                "from_env": bool(os.environ.get("ANTHROPIC_API_KEY")),
+                "from_file": bool(secrets.get("anthropic_api_key")),
+            },
+            "elevenlabs": {
+                "set": bool(self._eleven.ready),
+                "from_env": bool(os.environ.get("ELEVENLABS_API_KEY")),
+                "from_file": bool(secrets.get("elevenlabs_api_key")),
+            },
+        }
+
+    def set_api_key(self, name: str, value: str) -> dict:
+        """Save an API key to Documents/NicksRobotBuddy/secrets.json. The
+        change requires an app restart to take effect (env vars/clients are
+        initialized at startup)."""
+        from backend.secrets import get_secrets, KEY_REGISTRY
+        valid_names = set(KEY_REGISTRY.values())
+        if name not in valid_names:
+            return {"ok": False, "error": f"unknown key '{name}'"}
+        get_secrets().set(name, (value or "").strip())
+        return {"ok": True, "restart_required": True}
+
     def get_version_info(self) -> dict:
         """Diagnostic snapshot: what version + deps are actually loaded.
 

@@ -24,6 +24,31 @@
         <button id="voice-test" class="small-btn">▶ Try it</button>
         <button id="settings-close" class="send-btn">Done</button>
       </div>
+      <details class="api-keys">
+        <summary>API Keys</summary>
+        <div class="key-section">
+          <label>
+            <span class="key-label">Anthropic <small>(chat brain)</small></span>
+            <div class="key-row">
+              <span class="key-status" id="key-status-anthropic">…</span>
+              <input id="key-input-anthropic" type="password" placeholder="sk-ant-..." autocomplete="off">
+              <button class="small-btn key-save" data-key="anthropic_api_key">Save</button>
+            </div>
+          </label>
+          <label>
+            <span class="key-label">ElevenLabs <small>(premium voice)</small></span>
+            <div class="key-row">
+              <span class="key-status" id="key-status-elevenlabs">…</span>
+              <input id="key-input-elevenlabs" type="password" placeholder="sk_..." autocomplete="off">
+              <button class="small-btn key-save" data-key="elevenlabs_api_key">Save</button>
+            </div>
+          </label>
+          <p class="hint" style="margin-top:8px;">
+            Stored locally in <code>Documents\NicksRobotBuddy\secrets.json</code>.
+            <strong>Close and reopen the app</strong> after saving for new keys to take effect.
+          </p>
+        </div>
+      </details>
       <details class="diagnostics">
         <summary>Build info / diagnostics</summary>
         <div id="diagnostics-body"></div>

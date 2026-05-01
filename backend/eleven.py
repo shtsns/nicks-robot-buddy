@@ -11,10 +11,11 @@ then restart the app.
 
 from __future__ import annotations
 
-import os
 from typing import Optional
 
 import httpx
+
+from .secrets import resolve_key
 
 
 # Default voice: Jessica — playful, bright, warm. Premade voice (free tier
@@ -40,8 +41,8 @@ DEFAULT_MODEL_ID = "eleven_turbo_v2_5"
 
 class ElevenLabs:
     def __init__(self) -> None:
-        key = (os.environ.get("ELEVENLABS_API_KEY") or "").strip()
-        self._key: Optional[str] = key or None
+        # Env var first, then Documents/NicksRobotBuddy/secrets.json
+        self._key: Optional[str] = resolve_key("ELEVENLABS_API_KEY")
         self._client = httpx.Client(timeout=30.0)
         self._init_error: Optional[str] = None
         if not self._key:

@@ -15,6 +15,7 @@ import anthropic
 
 from . import config, demo_mode
 from .memory import Memory
+from .secrets import resolve_key
 
 
 DEMO_GAME_REPLY = (
@@ -32,7 +33,8 @@ class BuddyBrain:  # class name kept for code stability; the persona is "Biscuit
         self._init_error = None
         self.memory = Memory()
 
-        key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+        # Env var first, then secrets.json
+        key = api_key or resolve_key("ANTHROPIC_API_KEY")
         if not key:
             self._init_error = "Demo mode: no API key set. Biscuit is using a tiny offline brain."
             return

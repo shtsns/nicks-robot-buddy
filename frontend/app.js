@@ -904,7 +904,46 @@
   settingsBtn.addEventListener('click', () => {
     refreshVoiceList();
     refreshDiagnostics();
+    refreshKeyStatus();
     settingsModal.classList.remove('hidden');
+  });
+
+  // ----- API key paste-once UI -----
+  async function refreshKeyStatus() {
+    const result = await callApi('get_api_keys_status');
+    if (!result || !result.ok) return;
+    const setStatus = (id, present) => {
+      const dot = document.getElementById(id);
+      if (!dot) return;
+      dot.classList.toggle('set', !!present);
+      dot.title = present ? 'Set' : 'Not set';
+    };
+    setStatus('key-status-anthropic', result.anthropic && result.anthropic.set);
+    setStatus('key-status-elevenlabs', result.elevenlabs && result.elevenlabs.set);
+  }
+
+  document.querySelectorAll('.key-save').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const keyName = btn.dataset.key;
+      const inputId = keyName === 'anthropic_api_key' ? 'key-input-anthropic' : 'key-input-elevenlabs';
+      const input = document.getElementById(inputId);
+      if (!input || !input.value.trim()) {
+        alert('Paste the key first.');
+        return;
+      }
+      btn.disabled = true;
+      btn.textContent = '...';
+      const result = await callApi('set_api_key', keyName, input.value);
+      btn.disabled = false;
+      btn.textContent = 'Save';
+      if (result && result.ok) {
+        input.value = '';
+        flashBanner('🔑 Key saved! Close and reopen the app to use it.');
+        refreshKeyStatus();
+      } else {
+        alert('Save failed: ' + (result && result.error || 'unknown'));
+      }
+    });
   });
 
   async function refreshDiagnostics() {
