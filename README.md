@@ -61,6 +61,20 @@ That's it. No USB, no zip files.
 If git isn't an option, download the latest zip from GitHub:
 <https://github.com/shtsns/nicks-robot-buddy/archive/refs/heads/main.zip> → unzip → run INSTALL.bat. You won't get the auto-update flow but it works.
 
+## Premium voice (ElevenLabs, optional)
+
+Web Speech is fine but generic. For a high-quality character voice for Biscuit:
+
+1. Sign up at <https://elevenlabs.io> (free tier exists; Starter is $5/mo for 30K characters).
+2. Go to your profile → API key → copy.
+3. Open Command Prompt and run:
+   ```
+   setx ELEVENLABS_API_KEY "your-key-here"
+   ```
+4. Close any open command windows and double-click `RUN.bat`.
+
+Once configured, the voice picker in the gear ⚙️ menu shows curated ElevenLabs voices (Charlotte, Aria, Sarah, Rachel, Domi, Adam, Liam). Default is Charlotte. The app falls back to Web Speech automatically if the API is unreachable or the key is wrong, so it never hard-fails.
+
 ## Turn on the real AI brain (optional but recommended)
 
 Demo mode is fun but limited. To unlock real conversations:

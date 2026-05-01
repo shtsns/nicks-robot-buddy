@@ -24,6 +24,7 @@ from backend import config  # noqa: E402
 from backend.buddy_brain import BuddyBrain  # noqa: E402
 from backend.robot_serial import RobotAction, RobotConnection, list_serial_ports  # noqa: E402
 from backend.voice import VoiceListener  # noqa: E402
+from backend.eleven import ElevenLabs, DEFAULT_VOICE_ID  # noqa: E402
 
 
 class API:
@@ -33,6 +34,7 @@ class API:
         self._robot = RobotConnection(log_callback=self._on_robot_log)
         self._robot_thread: Optional[threading.Thread] = None
         self._voice = VoiceListener()
+        self._eleven = ElevenLabs()
 
     def _attach_window(self, window: webview.Window) -> None:
         self._window = window
@@ -55,7 +57,42 @@ class API:
             "max_total_seconds": config.MAX_TOTAL_SECONDS,
             "voice_available": self._voice.available,
             "voice_error": self._voice.import_error,
+            "eleven_ready": self._eleven.ready,
+            "eleven_error": self._eleven.init_error,
         }
+
+    # ---------- Premium TTS via ElevenLabs ----------
+
+    def synthesize_speech(self, text: str, voice_id: str = "") -> dict:
+        """Synthesize TTS audio via ElevenLabs and return as a base64 data
+        URL. Returns {fallback: True} if the key isn't set or the request
+        fails — the frontend falls back to Web Speech automatically."""
+        if not self._eleven.ready:
+            return {"ok": True, "fallback": True, "reason": "no_key"}
+        try:
+            chosen_voice = (
+                voice_id
+                or self._brain.memory.get_preferences().get("eleven_voice_id")
+                or None  # ElevenLabs will use its DEFAULT_VOICE_ID
+            )
+            audio_bytes = self._eleven.synthesize(text, chosen_voice)
+        except Exception as e:
+            return {"ok": True, "fallback": True, "reason": str(e)}
+        from base64 import b64encode
+        return {
+            "ok": True,
+            "fallback": False,
+            "data_url": f"data:audio/mpeg;base64,{b64encode(audio_bytes).decode('ascii')}",
+        }
+
+    def list_eleven_voices(self) -> dict:
+        return {"ok": True, "voices": self._eleven.list_voices()}
+
+    def eleven_usage(self) -> dict:
+        u = self._eleven.usage()
+        if u is None:
+            return {"ok": False}
+        return {"ok": True, **u}
 
     def start_listening(self) -> dict:
         """Begin recording from the mic. Returns immediately so the UI flips

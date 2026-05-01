@@ -490,58 +490,100 @@
     return _audioCtx;
   }
 
+  // Bark variations — each is a different "voice" of a bark. We pick one
+  // at random per call so successive barks don't sound identical.
+  const BARK_VARIATIONS = [
+    // Standard bark — mid-pitched, classic
+    { startFreq: [310, 360], endFreq: 170, dur: 0.30, q: 1.3,
+      formant1: [880, 480], formant2: [1850, 1200], gain: 0.55, noiseGain: 0.32 },
+    // Sharp/excited — higher pitch, faster decay
+    { startFreq: [380, 460], endFreq: 230, dur: 0.22, q: 1.6,
+      formant1: [1100, 600], formant2: [2400, 1500], gain: 0.52, noiseGain: 0.28 },
+    // Low woof — bigger dog feel, slower
+    { startFreq: [190, 240], endFreq: 110, dur: 0.42, q: 0.9,
+      formant1: [620, 340], formant2: [1300, 850], gain: 0.62, noiseGain: 0.40 },
+    // Tiny yip — quick high
+    { startFreq: [520, 600], endFreq: 380, dur: 0.16, q: 1.8,
+      formant1: [1450, 850], formant2: [2900, 1900], gain: 0.45, noiseGain: 0.22 },
+  ];
+
   function playBark(opts) {
     opts = opts || {};
     const ctx = getAudioCtx();
     if (!ctx) return;
     const now = ctx.currentTime + (opts.delay || 0);
-    const dur = 0.30 + Math.random() * 0.06;
+    const variation = opts.variation || BARK_VARIATIONS[Math.floor(Math.random() * BARK_VARIATIONS.length)];
 
-    // Voiced part: falling sawtooth pitch (the "voiced" core of a bark)
-    const osc = ctx.createOscillator();
-    osc.type = 'sawtooth';
-    const startFreq = 270 + Math.random() * 80;
-    osc.frequency.setValueAtTime(startFreq, now);
-    osc.frequency.exponentialRampToValueAtTime(150, now + dur);
+    const dur = variation.dur * (0.92 + Math.random() * 0.16);
+    const startFreq = variation.startFreq[0] + Math.random() * (variation.startFreq[1] - variation.startFreq[0]);
+    const endFreq = variation.endFreq;
 
-    // Noise part: breathy texture
+    // ---- Voiced source: stack of sawtooth oscillators (richer harmonics) ----
+    const osc1 = ctx.createOscillator();
+    const osc2 = ctx.createOscillator();
+    osc1.type = 'sawtooth';
+    osc2.type = 'square';
+    osc1.frequency.setValueAtTime(startFreq, now);
+    osc1.frequency.exponentialRampToValueAtTime(endFreq, now + dur);
+    osc2.frequency.setValueAtTime(startFreq * 0.5, now);
+    osc2.frequency.exponentialRampToValueAtTime(endFreq * 0.5, now + dur);
+
+    // ---- Noise source: gives breathiness and a chesty rasp ----
     const sr = ctx.sampleRate;
     const noiseBuf = ctx.createBuffer(1, Math.floor(sr * dur), sr);
-    const data = noiseBuf.getChannelData(0);
-    for (let i = 0; i < data.length; i++) {
-      // Pink-ish noise via simple integration of white
-      data[i] = (Math.random() * 2 - 1) * 0.5;
+    const noiseData = noiseBuf.getChannelData(0);
+    let last = 0;
+    for (let i = 0; i < noiseData.length; i++) {
+      // 1-pole lowpass for pink-ish noise (more body than white)
+      const w = Math.random() * 2 - 1;
+      last = last * 0.78 + w * 0.22;
+      noiseData[i] = last;
     }
     const noise = ctx.createBufferSource();
     noise.buffer = noiseBuf;
 
-    // Bandpass filter shapes the formants (mouth resonance)
-    const filter = ctx.createBiquadFilter();
-    filter.type = 'bandpass';
-    filter.frequency.setValueAtTime(900, now);
-    filter.frequency.exponentialRampToValueAtTime(450, now + dur);
-    filter.Q.value = 1.2;
+    // ---- Two bandpass filters in parallel — formants F1 (chest/throat) and F2 (mouth) ----
+    function makeFormant(centerStart, centerEnd, q) {
+      const f = ctx.createBiquadFilter();
+      f.type = 'bandpass';
+      f.Q.value = q;
+      f.frequency.setValueAtTime(centerStart, now);
+      f.frequency.exponentialRampToValueAtTime(centerEnd, now + dur);
+      return f;
+    }
+    const f1 = makeFormant(variation.formant1[0], variation.formant1[1], variation.q + 0.4);
+    const f2 = makeFormant(variation.formant2[0], variation.formant2[1], variation.q);
 
-    // Envelope: quick attack, fast decay
-    const envOsc = ctx.createGain();
-    envOsc.gain.setValueAtTime(0, now);
-    envOsc.gain.linearRampToValueAtTime(0.55, now + 0.018);
-    envOsc.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    const f1Gain = ctx.createGain();  f1Gain.gain.value = 1.0;
+    const f2Gain = ctx.createGain();  f2Gain.gain.value = 0.55;
 
-    const envNoise = ctx.createGain();
-    envNoise.gain.setValueAtTime(0, now);
-    envNoise.gain.linearRampToValueAtTime(0.4, now + 0.012);
-    envNoise.gain.exponentialRampToValueAtTime(0.001, now + dur);
+    // ---- Master envelope ----
+    const env = ctx.createGain();
+    env.gain.setValueAtTime(0, now);
+    env.gain.linearRampToValueAtTime(variation.gain, now + 0.014);
+    env.gain.setValueAtTime(variation.gain, now + 0.05);
+    env.gain.exponentialRampToValueAtTime(0.001, now + dur);
 
-    osc.connect(envOsc);
-    envOsc.connect(filter);
-    noise.connect(envNoise);
-    envNoise.connect(filter);
-    filter.connect(ctx.destination);
+    // ---- Wire it up: oscillators + noise -> formants -> env -> destination ----
+    const oscMix = ctx.createGain();   oscMix.gain.value = 0.65;
+    const noiseMix = ctx.createGain(); noiseMix.gain.value = variation.noiseGain;
 
-    osc.start(now);
+    osc1.connect(oscMix);
+    osc2.connect(oscMix);
+    oscMix.connect(f1);
+    oscMix.connect(f2);
+    noise.connect(noiseMix);
+    noiseMix.connect(f1);
+    noiseMix.connect(f2);
+    f1.connect(f1Gain).connect(env);
+    f2.connect(f2Gain).connect(env);
+    env.connect(ctx.destination);
+
+    osc1.start(now);
+    osc2.start(now);
     noise.start(now);
-    osc.stop(now + dur + 0.05);
+    osc1.stop(now + dur + 0.05);
+    osc2.stop(now + dur + 0.05);
     noise.stop(now + dur + 0.05);
   }
 
@@ -559,14 +601,25 @@
   }
 
   // ----- Speech synthesis (Biscuit talking) -----
+  // Two paths:
+  //   1. ElevenLabs (when ELEVENLABS_API_KEY is set on the backend) — high
+  //      quality, character-shaped voice. Audio comes back as a data URL,
+  //      played via HTMLAudioElement. This is the production path.
+  //   2. Web Speech (fallback) — browser SpeechSynthesis. Free, works
+  //      offline, but generic-sounding. Used when no key or on API errors.
+  // Mouth sync is identical in both paths via startMouthSync/stopMouthSync.
   let currentUtterance = null;
+  let currentAudio = null;
   let mouthInterval = null;
+  let elevenReady = false;            // mirrors backend get_status().eleven_ready
+  let _activeBuddyForMouth = null;
 
   // Voice selection priority: Microsoft "Online (Natural)" neural voices sound
   // dramatically better than the legacy ones. Aria/Jenny/Sara are warm, kid-
   // friendly female voices. Ana is specifically tagged for kids.
   // User-selected voice (persisted in localStorage) overrides the tier ranking.
-  const SAVED_VOICE_KEY = 'buddy.voice.name';
+  const SAVED_VOICE_KEY = 'buddy.voice.name';            // Web Speech voice name
+  const SAVED_ELEVEN_VOICE_KEY = 'buddy.eleven.voice.id'; // ElevenLabs voice id
 
   function pickVoice() {
     const voices = window.speechSynthesis.getVoices();
@@ -612,44 +665,94 @@
     return t.trim();
   }
 
-  function speak(text, buddy) {
+  function startMouthSync(buddy) {
+    _activeBuddyForMouth = buddy;
+    setSpeaking(buddy, true);
+    let open = false;
+    if (mouthInterval) clearInterval(mouthInterval);
+    mouthInterval = setInterval(() => {
+      open = !open;
+      setMouth(buddy, open);
+    }, 130);
+  }
+
+  function stopMouthSync() {
+    if (mouthInterval) { clearInterval(mouthInterval); mouthInterval = null; }
+    if (_activeBuddyForMouth) {
+      setMouth(_activeBuddyForMouth, false);
+      setSpeaking(_activeBuddyForMouth, false);
+      _activeBuddyForMouth = null;
+    } else {
+      Object.values(buddies).forEach(b => { setMouth(b, false); setSpeaking(b, false); });
+    }
+  }
+
+  async function speak(text, buddy) {
     stopSpeaking();
-    if (!('speechSynthesis' in window)) return;
-    // Play actual bark sound effects for any "woof"/"ruff"/"bark" tokens
-    // in the text BEFORE synthesizing speech for the rest.
+    if (!text) return;
+    // Real bark audio for any "woof"/"ruff"/"bark" tokens, regardless of
+    // which TTS engine handles the rest.
     playBarksForText(text);
     const cleaned = cleanForTTS(text);
-    if (!cleaned) return;  // Nothing speakable — pure puppy noises
+    if (!cleaned) return;
 
+    // Prefer ElevenLabs when the key is configured on the backend.
+    if (elevenReady) {
+      try {
+        const voiceId = localStorage.getItem(SAVED_ELEVEN_VOICE_KEY) || '';
+        const result = await callApi('synthesize_speech', cleaned, voiceId);
+        if (result && result.ok && !result.fallback && result.data_url) {
+          await playElevenAudio(result.data_url, buddy);
+          return;
+        }
+        // Logged so we can spot why we're falling back during dev
+        if (result && result.fallback) {
+          console.warn('[buddy] ElevenLabs fallback:', result.reason);
+        }
+      } catch (e) {
+        console.warn('[buddy] ElevenLabs error, falling back:', e);
+      }
+    }
+
+    // Fallback path: Web Speech API
+    if (!('speechSynthesis' in window)) return;
     const utter = new SpeechSynthesisUtterance(cleaned);
     utter.voice = pickVoice();
-    // Softer defaults: lower pitch (less squeaky), slightly slower rate.
     utter.pitch = 1.05;
     utter.rate = 0.95;
     utter.volume = 1.0;
-
-    utter.onstart = () => {
-      setSpeaking(buddy, true);
-      let open = false;
-      mouthInterval = setInterval(() => {
-        open = !open;
-        setMouth(buddy, open);
-      }, 130);
-    };
-    utter.onend = utter.onerror = () => {
-      if (mouthInterval) { clearInterval(mouthInterval); mouthInterval = null; }
-      setMouth(buddy, false);
-      setSpeaking(buddy, false);
-    };
-
+    utter.onstart = () => startMouthSync(buddy);
+    utter.onend = utter.onerror = () => stopMouthSync();
     currentUtterance = utter;
     window.speechSynthesis.speak(utter);
   }
 
+  function playElevenAudio(dataUrl, buddy) {
+    return new Promise((resolve) => {
+      const audio = new Audio(dataUrl);
+      currentAudio = audio;
+      audio.addEventListener('play', () => startMouthSync(buddy));
+      const cleanup = () => {
+        if (currentAudio === audio) currentAudio = null;
+        stopMouthSync();
+        resolve();
+      };
+      audio.addEventListener('ended', cleanup);
+      audio.addEventListener('error', cleanup);
+      audio.play().catch((e) => {
+        console.warn('[buddy] audio.play failed:', e);
+        cleanup();
+      });
+    });
+  }
+
   function stopSpeaking() {
     if (window.speechSynthesis) window.speechSynthesis.cancel();
-    if (mouthInterval) { clearInterval(mouthInterval); mouthInterval = null; }
-    Object.values(buddies).forEach(b => { setMouth(b, false); setSpeaking(b, false); });
+    if (currentAudio) {
+      try { currentAudio.pause(); } catch (e) { /* ignore */ }
+      currentAudio = null;
+    }
+    stopMouthSync();
     currentUtterance = null;
   }
 
@@ -666,18 +769,36 @@
   const voiceTestBtn = document.getElementById('voice-test');
   const settingsCloseBtn = document.getElementById('settings-close');
 
-  function refreshVoiceList() {
+  async function refreshVoiceList() {
+    voiceSelect.innerHTML = '';
+
+    if (elevenReady) {
+      // Premium path: ElevenLabs voices
+      const result = await callApi('list_eleven_voices');
+      const voices = (result && result.ok && result.voices) || [];
+      const current = localStorage.getItem(SAVED_ELEVEN_VOICE_KEY) || '';
+      voices.forEach(v => {
+        const opt = document.createElement('option');
+        opt.value = v.id;
+        opt.textContent = `🎙 ${v.name} — ${v.blurb || ''}`;
+        if (v.id === current) opt.selected = true;
+        voiceSelect.appendChild(opt);
+      });
+      // Mark the select so submit-handlers know which key to write
+      voiceSelect.dataset.mode = 'eleven';
+      return;
+    }
+
+    // Fallback path: system Web Speech voices
     const voices = window.speechSynthesis.getVoices()
       .filter(v => v.lang && v.lang.startsWith('en'))
       .sort((a, b) => {
-        // Online/Natural voices first, then alphabetical
         const aOnline = /Online|Natural/i.test(a.name) ? 0 : 1;
         const bOnline = /Online|Natural/i.test(b.name) ? 0 : 1;
         if (aOnline !== bOnline) return aOnline - bOnline;
         return a.name.localeCompare(b.name);
       });
     const current = pickVoice();
-    voiceSelect.innerHTML = '';
     voices.forEach(v => {
       const opt = document.createElement('option');
       opt.value = v.name;
@@ -686,6 +807,7 @@
       if (current && v.name === current.name) opt.selected = true;
       voiceSelect.appendChild(opt);
     });
+    voiceSelect.dataset.mode = 'web';
   }
 
   settingsBtn.addEventListener('click', () => {
@@ -693,11 +815,15 @@
     settingsModal.classList.remove('hidden');
   });
 
-  function persistVoiceChoice(name) {
-    if (!name) return;
-    localStorage.setItem(SAVED_VOICE_KEY, name);
-    // Also save to backend memory so it survives if WebView storage clears.
-    callApi('update_preferences', { voice_name: name });
+  function persistVoiceChoice(value) {
+    if (!value) return;
+    if (voiceSelect.dataset.mode === 'eleven') {
+      localStorage.setItem(SAVED_ELEVEN_VOICE_KEY, value);
+      callApi('update_preferences', { eleven_voice_id: value });
+    } else {
+      localStorage.setItem(SAVED_VOICE_KEY, value);
+      callApi('update_preferences', { voice_name: value });
+    }
   }
 
   settingsCloseBtn.addEventListener('click', () => {
@@ -1344,6 +1470,12 @@
     } else {
       const reason = (status && status.voice_error) || 'voice not available';
       console.warn('[buddy] voice unavailable:', reason);
+    }
+    if (status && status.eleven_ready) {
+      elevenReady = true;
+      console.log('[buddy] ElevenLabs ready — using premium TTS');
+    } else if (status && status.eleven_error) {
+      console.log('[buddy] ElevenLabs not configured (' + status.eleven_error + '), using Web Speech fallback');
     }
     if (status && status.robot_connected) {
       setRobotConnected(true, status.robot_port);
