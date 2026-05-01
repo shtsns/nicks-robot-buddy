@@ -27,6 +27,11 @@ if not exist .git (
     exit /b 1
 )
 
+echo.
+echo === Current build BEFORE pull ===
+git rev-parse --short HEAD 2>nul
+echo.
+
 echo Pulling latest changes from GitHub...
 git pull --ff-only
 if errorlevel 1 (
@@ -36,6 +41,13 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
+
+echo.
+echo === Current build AFTER pull ===
+git rev-parse --short HEAD 2>nul
+git log -1 --pretty=format:"%%h %%s" 2>nul
+echo.
+echo.
 
 echo.
 echo Refreshing install (auto-rebuilds venv if Python version changed)...

@@ -86,6 +86,33 @@ html, body {
   gap: 12px;
   margin-top: 16px;
 }
+
+.diagnostics {
+  margin-top: 18px;
+  padding: 12px 14px;
+  background: #FFFBF0;
+  border: 2px dashed #FBBF24;
+  border-radius: 12px;
+  font-size: 13px;
+  color: #4A3320;
+}
+.diagnostics summary {
+  cursor: pointer;
+  font-weight: bold;
+  user-select: none;
+}
+.diagnostics summary:hover { color: #3B82F6; }
+.diagnostics #diagnostics-body {
+  margin-top: 10px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.55;
+}
+.diagnostics .diag-row { display: flex; justify-content: space-between; gap: 12px; }
+.diagnostics .diag-key { color: #78350F; }
+.diagnostics .diag-val { color: #1E40AF; font-weight: bold; }
+.diagnostics .diag-val.bad { color: #DC2626; }
+.diagnostics .diag-val.ok  { color: #16A34A; }
 .app-header h1 {
   margin: 0;
   font-size: 28px;

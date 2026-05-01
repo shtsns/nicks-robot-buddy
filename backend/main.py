@@ -124,6 +124,59 @@ class API:
             return {"ok": False}
         return {"ok": True, **u}
 
+    def get_version_info(self) -> dict:
+        """Diagnostic snapshot: what version + deps are actually loaded.
+
+        Use this to verify an UPDATE.bat actually took effect. The 'commit'
+        field is the git short hash currently checked out — it should match
+        the latest commit on the GitHub repo's main branch.
+        """
+        import platform, sys
+        info = {
+            "commit": GIT_INFO.get("short", "unknown"),
+            "branch": GIT_INFO.get("branch", ""),
+            "python": sys.version.split()[0],
+            "platform": platform.platform(),
+            "anthropic_ready": self._brain.ready,
+            "anthropic_demo": self._brain.demo_mode,
+            "eleven_ready": self._eleven.ready,
+            "voice_pyaudio": self._voice.available,
+        }
+        # Whisper status — call private fn to avoid loading the model just for the check
+        try:
+            from backend.voice import _whisper_model, _whisper_load_error
+            info["whisper_loaded"] = _whisper_model is not None
+            info["whisper_error"] = _whisper_load_error or ""
+            try:
+                import faster_whisper  # type: ignore
+                info["whisper_installed"] = True
+            except Exception:
+                info["whisper_installed"] = False
+        except Exception:
+            info["whisper_loaded"] = False
+            info["whisper_installed"] = False
+
+        # Bundled barks
+        try:
+            sounds = list((PROJECT_ROOT / "assets" / "sounds").glob("bark_*.mp3"))
+            info["bundled_barks"] = len(sounds)
+        except Exception:
+            info["bundled_barks"] = 0
+
+        # Anthropic + Eleven SDK versions
+        try:
+            import anthropic as _a
+            info["anthropic_version"] = getattr(_a, "__version__", "?")
+        except Exception:
+            info["anthropic_version"] = "?"
+        try:
+            import httpx as _h
+            info["httpx_version"] = getattr(_h, "__version__", "?")
+        except Exception:
+            info["httpx_version"] = "?"
+
+        return info
+
     def start_listening(self) -> dict:
         """Begin recording from the mic. Returns immediately so the UI flips
         to the 'listening' state without delay."""
@@ -309,15 +362,72 @@ class API:
         }
 
 
+def _read_git_commit() -> dict:
+    """Read the current git commit hash from .git/HEAD without invoking git.
+    Returns {short, full, branch} or {short: 'unknown', ...} on failure."""
+    try:
+        head_path = PROJECT_ROOT / ".git" / "HEAD"
+        head = head_path.read_text(encoding="utf-8").strip()
+        if head.startswith("ref: "):
+            ref = head[5:]
+            branch = ref.split("/")[-1]
+            ref_path = PROJECT_ROOT / ".git" / ref
+            if ref_path.exists():
+                full = ref_path.read_text(encoding="utf-8").strip()
+                return {"short": full[:8], "full": full, "branch": branch}
+            # packed-refs fallback
+            packed = PROJECT_ROOT / ".git" / "packed-refs"
+            if packed.exists():
+                for line in packed.read_text(encoding="utf-8").splitlines():
+                    if line.endswith(" " + ref):
+                        full = line.split(" ")[0]
+                        return {"short": full[:8], "full": full, "branch": branch}
+            return {"short": "no-ref", "full": "", "branch": branch}
+        # detached HEAD: head is the commit hash directly
+        return {"short": head[:8], "full": head, "branch": "(detached)"}
+    except Exception as e:
+        return {"short": "unknown", "full": "", "branch": "", "error": str(e)}
+
+
+GIT_INFO = _read_git_commit()
+
+
+def _prepare_runtime_html(commit: str) -> Path:
+    """Read frontend/index.html, append cache-busting query strings to JS/CSS
+    references, ensure no-cache meta tags, and write a runtime copy that
+    pywebview loads. Avoids stale WebView2 cached JS/CSS after git pulls."""
+    src = FRONTEND_INDEX.read_text(encoding="utf-8")
+    cb = commit or "dev"
+    src = src.replace('href="style.css"', f'href="style.css?v={cb}"')
+    src = src.replace('src="app.js"', f'src="app.js?v={cb}"')
+    if "Cache-Control" not in src:
+        src = src.replace(
+            "<head>",
+            '<head>\n  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">\n  <meta http-equiv="Pragma" content="no-cache">',
+            1,
+        )
+    # Inject a global window.BUDDY_VERSION for diagnostic visibility
+    src = src.replace(
+        "<script src=\"app.js?v=",
+        f'<script>window.BUDDY_VERSION = "{cb}";</script>\n  <script src="app.js?v=',
+    )
+    runtime = FRONTEND_INDEX.parent / ".runtime_index.html"
+    runtime.write_text(src, encoding="utf-8")
+    return runtime
+
+
 def main() -> None:
     if not FRONTEND_INDEX.exists():
         print(f"Could not find frontend at {FRONTEND_INDEX}")
         sys.exit(1)
 
+    runtime_html = _prepare_runtime_html(GIT_INFO.get("short", ""))
+    print(f"[buddy] starting build {GIT_INFO.get('short', '?')} on branch {GIT_INFO.get('branch', '?')}")
+
     api = API()
     window = webview.create_window(
-        title="Nick & Biscuit",
-        url=str(FRONTEND_INDEX),
+        title=f"Nick & Biscuit  ({GIT_INFO.get('short', 'dev')})",
+        url=str(runtime_html),
         js_api=api,
         width=1100,
         height=780,

@@ -24,3 +24,4 @@ Thumbs.db
 
 # Project-local
 .claude/
+frontend/.runtime_index.html

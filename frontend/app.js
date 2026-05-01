@@ -903,8 +903,35 @@
 
   settingsBtn.addEventListener('click', () => {
     refreshVoiceList();
+    refreshDiagnostics();
     settingsModal.classList.remove('hidden');
   });
+
+  async function refreshDiagnostics() {
+    const body = document.getElementById('diagnostics-body');
+    if (!body) return;
+    body.textContent = 'loading...';
+    const info = await callApi('get_version_info');
+    if (!info) { body.textContent = '(unavailable)'; return; }
+
+    const yesno = (b) => b ? '<span class="diag-val ok">yes</span>' : '<span class="diag-val bad">NO</span>';
+    const val = (v) => `<span class="diag-val">${String(v).replace(/[<>&]/g, '')}</span>`;
+    const row = (k, v) => `<div class="diag-row"><span class="diag-key">${k}</span>${v}</div>`;
+
+    body.innerHTML = [
+      row('build commit', val(info.commit + (info.branch ? ` (${info.branch})` : ''))),
+      row('JS bundle ver', val(window.BUDDY_VERSION || '?')),
+      row('python', val(info.python)),
+      row('anthropic ready', yesno(info.anthropic_ready)),
+      row('anthropic SDK', val(info.anthropic_version)),
+      row('ElevenLabs key', yesno(info.eleven_ready)),
+      row('Whisper installed', yesno(info.whisper_installed)),
+      row('Whisper loaded', yesno(info.whisper_loaded)),
+      info.whisper_error ? row('Whisper error', `<span class="diag-val bad">${info.whisper_error}</span>`) : '',
+      row('Mic (PyAudio)', yesno(info.voice_pyaudio)),
+      row('bundled barks', val(info.bundled_barks + ' files')),
+    ].join('');
+  }
 
   function persistVoiceChoice(value) {
     if (!value) return;
