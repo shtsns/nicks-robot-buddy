@@ -151,40 +151,90 @@ html, body {
   100% { transform: translateY(0) scale(1); }
 }
 
-/* idle animations — anchored to the new full-body SVG coords */
+/* ---------- IDLE ANIMATIONS — production-polish layer ----------
+   Multiple body parts move on different periods so the motion never
+   loops perfectly. Custom easing curves replace the default ease-in-out
+   for a more natural, springy feel. */
+
+/* Tail wag with both rotation AND a subtle vertical lift — feels alive */
 .tail-group {
   transform-origin: 305px 285px;
-  animation: wag 1.6s ease-in-out infinite;
+  animation: wag 1.7s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-.buddy-svg.speaking .tail-group { animation: wag 0.5s ease-in-out infinite; }
-
+.buddy-svg.speaking .tail-group { animation: wag 0.42s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
 @keyframes wag {
-  0%, 100% { transform: rotate(-15deg); }
-  50%      { transform: rotate(20deg); }
+  0%   { transform: rotate(-15deg) translateY(0); }
+  25%  { transform: rotate(8deg) translateY(-2px); }
+  50%  { transform: rotate(22deg) translateY(0); }
+  75%  { transform: rotate(8deg) translateY(-2px); }
+  100% { transform: rotate(-15deg) translateY(0); }
 }
 
+/* Ears: a primary bounce on different periods + a sporadic flick keyframe */
 .ear-left {
   transform-origin: 110px 80px;
-  animation: earBounceL 2.8s ease-in-out infinite;
+  animation: earBounceL 3.1s cubic-bezier(0.42, 0, 0.58, 1) infinite,
+             earFlickL 11s ease-in-out infinite;
 }
 .ear-right {
   transform-origin: 290px 80px;
-  animation: earBounceR 2.8s ease-in-out infinite;
+  animation: earBounceR 2.9s cubic-bezier(0.42, 0, 0.58, 1) infinite,
+             earFlickR 13s ease-in-out infinite;
 }
 @keyframes earBounceL {
-  0%, 100% { transform: rotate(-2deg); }
-  50%      { transform: rotate(3deg); }
+  0%, 100% { transform: rotate(-3deg); }
+  50%      { transform: rotate(2.5deg); }
 }
 @keyframes earBounceR {
-  0%, 100% { transform: rotate(2deg); }
-  50%      { transform: rotate(-3deg); }
+  0%, 100% { transform: rotate(3deg); }
+  50%      { transform: rotate(-2.5deg); }
+}
+/* Sporadic flick — happens at slightly different times per ear */
+@keyframes earFlickL {
+  0%, 8%, 100% { /* default */ }
+  4%   { transform: rotate(-12deg); }
+  6%   { transform: rotate(2deg); }
+}
+@keyframes earFlickR {
+  0%, 8%, 100% { /* default */ }
+  4%   { transform: rotate(11deg); }
+  6%   { transform: rotate(-2deg); }
 }
 
-/* Front legs: tiny "shifting weight" idle animation */
-.leg-left  { transform-origin: 160px 320px; animation: legBounceL 3.5s ease-in-out infinite; }
-.leg-right { transform-origin: 240px 320px; animation: legBounceR 3.5s ease-in-out infinite; }
-@keyframes legBounceL { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(-2deg); } }
-@keyframes legBounceR { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(2deg); } }
+/* Front legs: weight-shifting idle */
+.leg-left  { transform-origin: 160px 320px; animation: legSwayL 3.7s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+.leg-right { transform-origin: 240px 320px; animation: legSwayR 3.5s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+@keyframes legSwayL { 0%, 100% { transform: rotate(0deg) translateY(0); } 50% { transform: rotate(-2deg) translateY(-1px); } }
+@keyframes legSwayR { 0%, 100% { transform: rotate(0deg) translateY(0); } 50% { transform: rotate(2deg) translateY(-1px); } }
+
+/* Body subtly bobs as if breathing through it */
+.body-group {
+  transform-origin: 200px 290px;
+  animation: bodyBreath 3.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+}
+@keyframes bodyBreath {
+  0%, 100% { transform: scaleY(1) scaleX(1); }
+  50%      { transform: scaleY(1.025) scaleX(0.992); }
+}
+
+/* Head subtle bob — tied to body but slower so it desyncs naturally */
+.head-group {
+  transform-origin: 200px 240px;
+  animation: headBob 4.5s cubic-bezier(0.42, 0, 0.58, 1) infinite;
+}
+@keyframes headBob {
+  0%, 100% { transform: translateY(0) rotate(0); }
+  33%      { transform: translateY(-1.5px) rotate(0.8deg); }
+  66%      { transform: translateY(-0.8px) rotate(-0.6deg); }
+}
+
+/* When thinking/listening/speaking, suspend headBob so the explicit class
+   animations on .buddy-svg control posture without conflicts. */
+.buddy-svg.thinking .head-group,
+.buddy-svg.listening .head-group,
+.buddy-svg.speaking .head-group {
+  animation: none;
+}
 
 /* Thinking animation: Biscuit bobs his head and tilts slightly */
 .buddy-svg.thinking {

@@ -591,12 +591,43 @@
     return /\b(woo+f+|ruf+f*|bar+k|ar+f|yi+p|yap+|grr+r*)/i.test(text || '');
   }
 
+  // Bundled barks: real audio files generated via ElevenLabs SFX API. If the
+  // assets/sounds/ folder has them, we play those instead of synthesizing.
+  // Loaded once at boot; cached as Audio elements for instant playback.
+  let _bundledBarks = [];
+  async function preloadBundledBarks() {
+    try {
+      const result = await callApi('list_bark_sounds');
+      if (result && result.ok && result.sounds && result.sounds.length) {
+        _bundledBarks = result.sounds.map(s => ({ name: s.name, dataUrl: s.data_url }));
+        console.log(`[buddy] preloaded ${_bundledBarks.length} real bark samples`);
+      }
+    } catch (e) { /* fall back to synth */ }
+  }
+
+  function playBundledBark(opts) {
+    if (!_bundledBarks.length) return false;
+    opts = opts || {};
+    const pick = _bundledBarks[Math.floor(Math.random() * _bundledBarks.length)];
+    const audio = new Audio(pick.dataUrl);
+    audio.volume = 0.85;
+    if (opts.delay && opts.delay > 0) {
+      setTimeout(() => audio.play().catch(() => {}), opts.delay * 1000);
+    } else {
+      audio.play().catch(() => {});
+    }
+    return true;
+  }
+
   function playBarksForText(text) {
     if (!text) return;
     const matches = text.match(/\b(woo+f+|ruf+f*|bar+k|ar+f|yi+p|yap+|grr+r*)/gi) || [];
-    const count = Math.min(matches.length || 0, 3);  // cap at 3 so it doesn't get annoying
+    const count = Math.min(matches.length || 0, 3);
     for (let i = 0; i < count; i++) {
-      playBark({ delay: i * 0.28 });
+      // Real audio if available, synth otherwise. Same path either way.
+      if (!playBundledBark({ delay: i * 0.28 })) {
+        playBark({ delay: i * 0.28 });
+      }
     }
   }
 
@@ -700,12 +731,12 @@
     if (elevenReady) {
       try {
         const voiceId = localStorage.getItem(SAVED_ELEVEN_VOICE_KEY) || '';
-        const result = await callApi('synthesize_speech', cleaned, voiceId);
+        // with_timestamps=true gives us character-level alignment for real lip sync
+        const result = await callApi('synthesize_speech', cleaned, voiceId, true);
         if (result && result.ok && !result.fallback && result.data_url) {
-          await playElevenAudio(result.data_url, buddy);
+          await playElevenAudio(result.data_url, buddy, result.alignment);
           return;
         }
-        // Logged so we can spot why we're falling back during dev
         if (result && result.fallback) {
           console.warn('[buddy] ElevenLabs fallback:', result.reason);
         }
@@ -727,14 +758,74 @@
     window.speechSynthesis.speak(utter);
   }
 
-  function playElevenAudio(dataUrl, buddy) {
+  // Real lip-sync from ElevenLabs alignment data.
+  // Mouth shapes by character class:
+  //   open   = vowels + open consonants (a, e, i, o, u, w, h)
+  //   closed = consonants and pauses
+  // We sample at ~33 Hz (rAF on a throttle) and pick the active char by
+  // currentTime, then set the mouth shape accordingly.
+  const VOWEL_RE = /[aeiouwAEIOUW]/;
+
+  function alignmentMouthAt(alignment, t) {
+    if (!alignment || !alignment.character_start_times_seconds) return false;
+    const starts = alignment.character_start_times_seconds;
+    const ends = alignment.character_end_times_seconds;
+    const chars = alignment.characters;
+    if (!starts || !ends || !chars) return false;
+    // Binary search for the active character at time t
+    let lo = 0, hi = starts.length - 1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (t < starts[mid]) hi = mid - 1;
+      else if (t > ends[mid]) lo = mid + 1;
+      else return VOWEL_RE.test(chars[mid] || '');
+    }
+    return false;
+  }
+
+  function playElevenAudio(dataUrl, buddy, alignment) {
     return new Promise((resolve) => {
       const audio = new Audio(dataUrl);
       currentAudio = audio;
-      audio.addEventListener('play', () => startMouthSync(buddy));
+      let rafId = null;
+
+      function startSync() {
+        setSpeaking(buddy, true);
+        let lastShape = null;
+        const tick = () => {
+          if (!currentAudio || currentAudio !== audio) return;
+          const open = alignmentMouthAt(alignment, audio.currentTime);
+          if (open !== lastShape) {
+            setMouth(buddy, open);
+            lastShape = open;
+          }
+          rafId = requestAnimationFrame(tick);
+        };
+        rafId = requestAnimationFrame(tick);
+      }
+      function stopSync() {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = null;
+        setMouth(buddy, false);
+        setSpeaking(buddy, false);
+      }
+
+      audio.addEventListener('play', () => {
+        if (alignment && alignment.character_start_times_seconds) {
+          startSync();
+        } else {
+          // No alignment data — fall back to the timer-based toggle
+          startMouthSync(buddy);
+        }
+      });
       const cleanup = () => {
         if (currentAudio === audio) currentAudio = null;
-        stopMouthSync();
+        if (rafId) cancelAnimationFrame(rafId);
+        if (alignment && alignment.character_start_times_seconds) {
+          stopSync();
+        } else {
+          stopMouthSync();
+        }
         resolve();
       };
       audio.addEventListener('ended', cleanup);
@@ -1473,10 +1564,14 @@
     }
     if (status && status.eleven_ready) {
       elevenReady = true;
-      console.log('[buddy] ElevenLabs ready — using premium TTS');
+      console.log('[buddy] ElevenLabs ready — using premium TTS with character-level lip sync');
     } else if (status && status.eleven_error) {
       console.log('[buddy] ElevenLabs not configured (' + status.eleven_error + '), using Web Speech fallback');
     }
+
+    // Load any bundled bark samples (real audio generated via ElevenLabs SFX,
+    // committed under assets/sounds/). Falls back to synth if not present.
+    preloadBundledBarks();
     if (status && status.robot_connected) {
       setRobotConnected(true, status.robot_port);
     } else {

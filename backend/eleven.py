@@ -17,19 +17,21 @@ from typing import Optional
 import httpx
 
 
-# Default voice: Charlotte — warm, conversational young female. Suits Biscuit.
-# Scott can swap via the settings modal once ElevenLabs is configured.
-DEFAULT_VOICE_ID = "XB0fDUnXU5powFXDhCwa"  # Charlotte
+# Default voice: Jessica — playful, bright, warm. Premade voice (free tier
+# accessible). Best fit for a puppy persona out of the standard catalog.
+DEFAULT_VOICE_ID = "cgSgspJ2msm6clMCkdW9"  # Jessica
 
-# Curated voice options to surface in the settings UI without a full API roundtrip
+# Curated voice options — all premade (free-tier accessible), no library voices
+# which would require a paid plan. Picked for kid-app suitability.
 CURATED_VOICES: list[dict] = [
-    {"id": "XB0fDUnXU5powFXDhCwa", "name": "Charlotte", "blurb": "Warm conversational (default)"},
-    {"id": "9BWtsMINqrJLrRacOk9x", "name": "Aria",      "blurb": "Young friendly female"},
-    {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Sarah",     "blurb": "Soft warm female"},
-    {"id": "21m00Tcm4TlvDq8ikWAM", "name": "Rachel",    "blurb": "Calm storyteller female"},
-    {"id": "AZnzlk1XvdvUeBnXmlld", "name": "Domi",      "blurb": "Energetic young female"},
-    {"id": "pNInz6obpgDQGcFmaJgB", "name": "Adam",      "blurb": "Friendly male"},
-    {"id": "TX3LPaxmHKxFdv7VOQHJ", "name": "Liam",      "blurb": "Young energetic male"},
+    {"id": "cgSgspJ2msm6clMCkdW9", "name": "Jessica",   "blurb": "Playful, bright, warm (default)"},
+    {"id": "FGY2WhTYpPnrIDTdsKH5", "name": "Laura",     "blurb": "Enthusiastic, quirky"},
+    {"id": "EXAVITQu4vr4xnSDxMaL", "name": "Sarah",     "blurb": "Mature, reassuring"},
+    {"id": "JBFqnCBsd6RMkjVDRZzb", "name": "George",    "blurb": "Warm storyteller"},
+    {"id": "pFZP5JQG7iQjIQuC4Bku", "name": "Lily",      "blurb": "Velvety actress"},
+    {"id": "hpp4J3VqNfWAUOO0d1Us", "name": "Bella",     "blurb": "Professional, bright, warm"},
+    {"id": "TX3LPaxmHKxFdv7VOQHJ", "name": "Liam",      "blurb": "Energetic young male"},
+    {"id": "iP95p4xoKVk53GoZ742B", "name": "Chris",     "blurb": "Charming, down-to-earth male"},
 ]
 
 # Eleven Turbo v2.5: fast, cheap, high quality. Great for an interactive kid app.
@@ -52,6 +54,14 @@ class ElevenLabs:
     @property
     def init_error(self) -> Optional[str]:
         return self._init_error
+
+    def _voice_settings(self) -> dict:
+        return {
+            "stability": 0.45,
+            "similarity_boost": 0.75,
+            "style": 0.40,
+            "use_speaker_boost": True,
+        }
 
     def synthesize(
         self,
@@ -76,14 +86,53 @@ class ElevenLabs:
         payload = {
             "text": text,
             "model_id": model_id or DEFAULT_MODEL_ID,
-            "voice_settings": {
-                "stability": 0.45,        # lower = more emotional variation
-                "similarity_boost": 0.75,
-                "style": 0.40,            # mild style exaggeration for warmth
-                "use_speaker_boost": True,
-            },
+            "voice_settings": self._voice_settings(),
         }
+        try:
+            resp = self._client.post(url, json=payload, headers=headers)
+        except httpx.HTTPError as e:
+            raise RuntimeError(f"network: {e}") from e
 
+        if resp.status_code == 401:
+            raise RuntimeError("Invalid ELEVENLABS_API_KEY")
+        if resp.status_code == 429:
+            raise RuntimeError("ElevenLabs rate limit hit")
+        if resp.status_code >= 400:
+            raise RuntimeError(f"ElevenLabs API {resp.status_code}: {resp.text[:200]}")
+        return resp.content
+
+    def synthesize_with_timestamps(
+        self,
+        text: str,
+        voice_id: Optional[str] = None,
+        model_id: Optional[str] = None,
+    ) -> dict:
+        """Returns {audio_b64: str, alignment: {...}} where alignment maps
+        characters to playback times in seconds. Used to drive lip sync.
+
+        Alignment shape:
+            {
+              "characters": ["H", "i", "!"...],
+              "character_start_times_seconds": [0.0, 0.05, 0.12, ...],
+              "character_end_times_seconds":   [0.04, 0.11, 0.19, ...],
+            }
+        """
+        if not self._key:
+            raise RuntimeError("ELEVENLABS_API_KEY not set")
+        if not text or not text.strip():
+            raise ValueError("Empty text")
+
+        voice = voice_id or DEFAULT_VOICE_ID
+        url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice}/with-timestamps"
+        headers = {
+            "xi-api-key": self._key,
+            "Content-Type": "application/json",
+        }
+        payload = {
+            "text": text,
+            "model_id": model_id or DEFAULT_MODEL_ID,
+            "voice_settings": self._voice_settings(),
+        }
         try:
             resp = self._client.post(url, json=payload, headers=headers)
         except httpx.HTTPError as e:
@@ -96,7 +145,14 @@ class ElevenLabs:
         if resp.status_code >= 400:
             raise RuntimeError(f"ElevenLabs API {resp.status_code}: {resp.text[:200]}")
 
-        return resp.content
+        data = resp.json()
+        # The API returns audio as base64. Some endpoint variants nest
+        # alignment under "normalized_alignment" or "alignment" — accept either.
+        alignment = data.get("alignment") or data.get("normalized_alignment") or {}
+        return {
+            "audio_b64": data.get("audio_base64", ""),
+            "alignment": alignment,
+        }
 
     def list_voices(self) -> list[dict]:
         """Return the curated quick-pick list. (We could fetch live via /v1/voices

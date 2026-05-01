@@ -23,6 +23,13 @@ if exist "%LOCALAPPDATA%\Programs\Python\Python312\python.exe" (
     set "PYTHON_EXE=%ProgramFiles(x86)%\Python312\python.exe"
 )
 
+REM ---- Microsoft Visual C++ runtime (needed by faster-whisper / ctranslate2) ----
+echo Ensuring Microsoft Visual C++ runtime is installed...
+where winget >nul 2>nul
+if not errorlevel 1 (
+    winget install --id Microsoft.VCRedist.2015+.x64 --silent --accept-package-agreements --accept-source-agreements >nul 2>nul
+)
+
 if not defined PYTHON_EXE (
     echo Python 3.12 not found. Installing via winget...
     echo (3.13 and 3.14 don't yet have prebuilt wheels for one of our deps.)

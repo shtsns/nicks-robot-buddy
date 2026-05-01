@@ -1,15 +1,19 @@
 """Python-side speech-to-text with press-to-start, press-to-stop control.
 
 The browser's Web Speech API isn't enabled in WebView2 (Microsoft Edge's
-embedded browser used by pywebview), so we record audio with the local
-microphone and transcribe it with Google's free recognition endpoint via
-the SpeechRecognition library.
+embedded browser used by pywebview), so we record audio locally and
+transcribe it server-side.
+
+Engine: faster-whisper running locally (offline, very accurate, especially
+for kid voices). First run lazily downloads the tiny.en model (~75 MB) to
+~/.cache/huggingface. After that it's instant. Falls back to Google's free
+endpoint if Whisper fails to load (e.g. C++ runtime missing).
 
 Architecture: start_listening() spins up a background thread that records
 mic frames into a buffer. stop_listening() signals the thread to stop,
 joins it, then transcribes the buffered audio. Both calls return
-immediately on the UI side — the only delay the user notices is the
-network-bound transcription itself (~1-2 seconds).
+immediately on the UI side — the transcription pass takes <1s on a
+typical laptop CPU with the tiny.en model.
 """
 
 from __future__ import annotations
@@ -34,6 +38,30 @@ try:
 except Exception as e:
     PA_AVAILABLE = False
     PA_IMPORT_ERROR = str(e)
+
+# Whisper is loaded lazily — first transcription pass triggers the model
+# download. Keep _whisper_model global so it stays warm between calls.
+_whisper_model = None
+_whisper_load_error: Optional[str] = None
+
+def _get_whisper_model():
+    """Returns a faster-whisper model instance, or None if it fails to load.
+    Loaded lazily because the import + model load takes a few seconds."""
+    global _whisper_model, _whisper_load_error
+    if _whisper_model is not None:
+        return _whisper_model
+    if _whisper_load_error is not None:
+        return None  # already failed once, don't retry per-call
+    try:
+        from faster_whisper import WhisperModel  # type: ignore
+        # tiny.en: 75 MB, very fast on CPU, plenty accurate for kid speech.
+        # int8 quantization keeps it light on memory.
+        _whisper_model = WhisperModel("tiny.en", device="cpu", compute_type="int8")
+        return _whisper_model
+    except Exception as e:
+        _whisper_load_error = str(e)
+        print(f"[voice] Whisper unavailable, falling back to Google: {e}")
+        return None
 
 
 _SAMPLE_RATE = 16000
@@ -141,7 +169,7 @@ class VoiceListener:
         if not frames:
             return {"ok": False, "error": "Biscuit didn't hear anything. Try again?"}
 
-        # Build a WAV blob in memory and feed it to SpeechRecognition
+        # Build a WAV blob in memory
         wav_buffer = io.BytesIO()
         try:
             with wave.open(wav_buffer, "wb") as wf:
@@ -153,6 +181,29 @@ class VoiceListener:
         except Exception as e:
             return {"ok": False, "error": f"Couldn't package audio: {e}"}
 
+        # ----- Try Whisper first (offline, accurate) -----
+        whisper = _get_whisper_model()
+        if whisper is not None:
+            try:
+                # faster-whisper accepts BinaryIO directly
+                segments, _info = whisper.transcribe(
+                    wav_buffer,
+                    beam_size=1,           # greedy decoding is fast and good for short utterances
+                    language="en",
+                    condition_on_previous_text=False,
+                    no_speech_threshold=0.6,
+                    vad_filter=True,       # skip leading/trailing silence
+                )
+                text = " ".join(s.text for s in segments).strip()
+                if text:
+                    return {"ok": True, "text": text, "engine": "whisper"}
+                # Empty transcription — try Google as fallback
+                wav_buffer.seek(0)
+            except Exception as e:
+                print(f"[voice] Whisper transcription error, falling back: {e}")
+                wav_buffer.seek(0)
+
+        # ----- Fallback: Google free endpoint -----
         try:
             with sr.AudioFile(wav_buffer) as source:
                 audio = self._recognizer.record(source)
@@ -164,7 +215,7 @@ class VoiceListener:
             text = (text or "").strip()
             if not text:
                 return {"ok": False, "error": "Couldn't understand. Try again?"}
-            return {"ok": True, "text": text}
+            return {"ok": True, "text": text, "engine": "google"}
         except sr.UnknownValueError:
             return {"ok": False, "error": "Couldn't understand. Try again?"}
         except sr.RequestError as e:

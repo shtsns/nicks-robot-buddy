@@ -63,30 +63,60 @@ class API:
 
     # ---------- Premium TTS via ElevenLabs ----------
 
-    def synthesize_speech(self, text: str, voice_id: str = "") -> dict:
-        """Synthesize TTS audio via ElevenLabs and return as a base64 data
-        URL. Returns {fallback: True} if the key isn't set or the request
-        fails — the frontend falls back to Web Speech automatically."""
+    def synthesize_speech(self, text: str, voice_id: str = "", with_timestamps: bool = True) -> dict:
+        """Synthesize TTS audio via ElevenLabs. Returns either:
+          - {fallback: True, reason: ...} if the key isn't set / API fails
+          - {data_url, alignment} for ElevenLabs success (with character-level
+            alignment driving real lip sync on the frontend)
+
+        with_timestamps=True uses the /with-timestamps endpoint so the
+        frontend can drive mouth animation from real character timing.
+        """
         if not self._eleven.ready:
             return {"ok": True, "fallback": True, "reason": "no_key"}
         try:
             chosen_voice = (
                 voice_id
                 or self._brain.memory.get_preferences().get("eleven_voice_id")
-                or None  # ElevenLabs will use its DEFAULT_VOICE_ID
+                or None
             )
+            if with_timestamps:
+                result = self._eleven.synthesize_with_timestamps(text, chosen_voice)
+                return {
+                    "ok": True,
+                    "fallback": False,
+                    "data_url": f"data:audio/mpeg;base64,{result['audio_b64']}",
+                    "alignment": result["alignment"],
+                }
             audio_bytes = self._eleven.synthesize(text, chosen_voice)
+            from base64 import b64encode
+            return {
+                "ok": True,
+                "fallback": False,
+                "data_url": f"data:audio/mpeg;base64,{b64encode(audio_bytes).decode('ascii')}",
+            }
         except Exception as e:
             return {"ok": True, "fallback": True, "reason": str(e)}
-        from base64 import b64encode
-        return {
-            "ok": True,
-            "fallback": False,
-            "data_url": f"data:audio/mpeg;base64,{b64encode(audio_bytes).decode('ascii')}",
-        }
 
     def list_eleven_voices(self) -> dict:
         return {"ok": True, "voices": self._eleven.list_voices()}
+
+    def list_bark_sounds(self) -> dict:
+        """Return base64-encoded bundled bark MP3s if they exist. Frontend
+        prefers these over Web Audio synthesis."""
+        from base64 import b64encode
+        sounds_dir = PROJECT_ROOT / "assets" / "sounds"
+        items = []
+        if sounds_dir.exists():
+            for p in sorted(sounds_dir.glob("bark_*.mp3")):
+                try:
+                    items.append({
+                        "name": p.stem,
+                        "data_url": f"data:audio/mpeg;base64,{b64encode(p.read_bytes()).decode('ascii')}",
+                    })
+                except Exception:
+                    continue
+        return {"ok": True, "sounds": items}
 
     def eleven_usage(self) -> dict:
         u = self._eleven.usage()
