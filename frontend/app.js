@@ -71,8 +71,12 @@
   }
 
   // ----- TRICKS -----
-  const TRICKS = ['sit', 'jump', 'spin', 'wiggle', 'rollover', 'laydown'];
-  const TRICK_DURATIONS = { sit: 1400, jump: 900, spin: 1100, wiggle: 900, rollover: 1400, laydown: 1600 };
+  const TRICKS = ['sit', 'jump', 'spin', 'wiggle', 'rollover', 'laydown',
+                  'shake', 'beg', 'playdead', 'speak'];
+  const TRICK_DURATIONS = {
+    sit: 1400, jump: 900, spin: 1100, wiggle: 900, rollover: 1400, laydown: 1600,
+    shake: 1200, beg: 1600, playdead: 2000, speak: 1000,
+  };
 
   function performTrick(buddy, trick) {
     if (!buddy) return;
@@ -100,11 +104,17 @@
   const TRICK_TRIGGERS = {
     'sit': 'sit', 'sit down': 'sit', 'good sit': 'sit',
     'jump': 'jump', 'jump up': 'jump',
-    'spin': 'spin', 'spin around': 'spin', 'twirl': 'spin', 'spin biscuit': 'spin',
-    'wiggle': 'wiggle', 'wiggle butt': 'wiggle', 'shake': 'wiggle',
+    'spin': 'spin', 'spin around': 'spin', 'twirl': 'spin',
+    'wiggle': 'wiggle', 'wiggle butt': 'wiggle',
     'roll over': 'rollover', 'rollover': 'rollover',
     'lay down': 'laydown', 'lie down': 'laydown', 'lay': 'laydown', 'down': 'laydown',
-    'dance': 'wiggle',  // generic "dance" maps to wiggle
+    'dance': 'wiggle',
+    'shake': 'shake', 'shake hand': 'shake', 'shake paw': 'shake', 'paw': 'shake',
+    'beg': 'beg', 'sit pretty': 'beg',
+    'play dead': 'playdead', 'playdead': 'playdead', 'bang': 'playdead',
+    'speak': 'speak', 'bark': 'speak', 'howl': 'speak', 'sing': 'speak',
+    'hide': 'hide', 'hide and seek': 'hide', 'hide-and-seek': 'hide', 'hide and go seek': 'hide',
+    'go hide': 'hide',
   };
   const TRICK_VERBS = {
     sit: 'Biscuit sits',
@@ -113,6 +123,11 @@
     wiggle: 'Biscuit wiggles',
     rollover: 'Biscuit rolls over',
     laydown: 'Biscuit lies down',
+    shake: 'Biscuit shakes!',
+    beg: 'Biscuit begs',
+    playdead: 'Biscuit plays dead!',
+    speak: 'Biscuit speaks!',
+    hide: 'Biscuit hides! Find him!',
   };
 
   function tryTrickCommand(text, buddy, statusEl) {
@@ -128,13 +143,97 @@
     const trick = TRICK_TRIGGERS[lower];
     if (!trick) return false;
 
-    performTrick(buddy, trick);
-    playBark();
+    if (trick === 'hide') {
+      startHideAndSeek(buddy);
+    } else if (trick === 'speak') {
+      // Trigger the head-tilt animation AND play multiple barks
+      performTrick(buddy, 'speak');
+      for (let i = 0; i < 3; i++) playBark({ delay: i * 0.22 });
+    } else {
+      performTrick(buddy, trick);
+      playBark();
+    }
     if (statusEl) {
-      statusEl.textContent = `🐾 ${TRICK_VERBS[trick]}!`;
+      statusEl.textContent = `🐾 ${TRICK_VERBS[trick]}`;
       setTimeout(() => { if (statusEl.textContent.startsWith('🐾')) statusEl.textContent = ''; }, 1800);
     }
     return true;
+  }
+
+  // ----- HIDE AND SEEK -----
+  let _hideState = null;
+
+  function startHideAndSeek(buddy) {
+    if (!buddy) return;
+    if (_hideState) return;  // already hiding
+
+    // Hide Biscuit
+    buddy.classList.remove('coming-back');
+    buddy.classList.add('hiding');
+
+    // Show banner
+    const banner = document.createElement('div');
+    banner.className = 'hide-banner';
+    banner.textContent = '🔍 Biscuit is hiding! Find the peek and tap it!';
+    document.body.appendChild(banner);
+
+    // Spawn peek emoji at a random screen edge after a short delay
+    const peekDelay = 1100 + Math.random() * 1200;
+    const giveUpAt = peekDelay + 9000;
+    let peek = null;
+
+    const peekTimeout = setTimeout(() => {
+      const corners = [
+        { left: 'auto', right: '8px', top: 'auto', bottom: '20vh' },
+        { left: '8px', right: 'auto', top: 'auto', bottom: '30vh' },
+        { left: 'auto', right: '5vw', top: '90px', bottom: 'auto' },
+        { left: '12vw', right: 'auto', top: '95px', bottom: 'auto' },
+      ];
+      const pick = corners[Math.floor(Math.random() * corners.length)];
+      peek = document.createElement('div');
+      peek.className = 'hide-peek';
+      peek.textContent = ['👀', '🐾', '👂', '🐶'][Math.floor(Math.random() * 4)];
+      Object.assign(peek.style, pick);
+      peek.addEventListener('click', () => endHideAndSeek(buddy, true));
+      document.body.appendChild(peek);
+    }, peekDelay);
+
+    const giveUpTimeout = setTimeout(() => endHideAndSeek(buddy, false), giveUpAt);
+
+    _hideState = { buddy, banner, peek, peekTimeout, giveUpTimeout, getPeek: () => peek };
+  }
+
+  function endHideAndSeek(buddy, found) {
+    if (!_hideState) return;
+    clearTimeout(_hideState.peekTimeout);
+    clearTimeout(_hideState.giveUpTimeout);
+    _hideState.banner?.remove();
+    const peek = _hideState.getPeek?.();
+    if (peek) peek.remove();
+    _hideState = null;
+
+    buddy.classList.remove('hiding');
+    buddy.classList.add('coming-back');
+    setTimeout(() => buddy.classList.remove('coming-back'), 750);
+
+    // Celebrate + bark
+    if (found) {
+      setTimeout(() => {
+        for (let i = 0; i < 2; i++) playBark({ delay: i * 0.18 });
+        performTrick(buddy, 'wiggle');
+      }, 450);
+      const banner = document.createElement('div');
+      banner.className = 'hide-banner';
+      banner.textContent = '🎉 You found Biscuit!';
+      document.body.appendChild(banner);
+      setTimeout(() => banner.remove(), 2200);
+    } else {
+      const banner = document.createElement('div');
+      banner.className = 'hide-banner';
+      banner.textContent = "🐶 Biscuit got lonely and came back!";
+      document.body.appendChild(banner);
+      setTimeout(() => banner.remove(), 2200);
+    }
   }
 
   // ----- CURSOR TRACKING -----
@@ -172,6 +271,163 @@
       eye.style.setProperty('--eye-y', `${(dy * maxDy).toFixed(2)}px`);
     });
   });
+
+  // ============================================================
+  // EASTER EGGS — surprises throughout the app for an 8-year-old
+  // ============================================================
+
+  // 1) NOSE BOOP — click Biscuit's nose 5 times rapid → bonus barks + flash
+  let _noseBoops = 0;
+  let _noseBoopTimer = null;
+  document.addEventListener('click', (e) => {
+    const nose = e.target.closest('.nose');
+    if (!nose) return;
+    nose.classList.remove('booped');
+    void nose.offsetWidth;
+    nose.classList.add('booped');
+    setTimeout(() => nose.classList.remove('booped'), 500);
+    playBark();
+    _noseBoops++;
+    clearTimeout(_noseBoopTimer);
+    _noseBoopTimer = setTimeout(() => { _noseBoops = 0; }, 2500);
+    if (_noseBoops >= 5) {
+      _noseBoops = 0;
+      // Boop reward: spin trick + a confetti shower
+      const buddy = nose.closest('.buddy-svg');
+      if (buddy) performTrick(buddy, 'spin');
+      launchConfetti();
+    }
+  });
+
+  // 2) COLLAR TAG — click the "B" tag → mini stats flash
+  document.addEventListener('click', async (e) => {
+    const tag = e.target.closest('.collar text');
+    if (!tag) return;
+    const mem = await callApi('get_memory');
+    if (!mem) return;
+    const stats = mem.stats || {};
+    const banner = document.createElement('div');
+    banner.className = 'hide-banner';
+    banner.style.background = '#FBBF24';
+    banner.innerHTML = `🦴 You and Biscuit have played <strong>${stats.total_sessions || 0}</strong> times,
+      sent <strong>${stats.total_messages || 0}</strong> messages,
+      and snapped <strong>${stats.photos_taken || 0}</strong> photos!`;
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 4000);
+  });
+
+  // 3) MAGIC WORDS in any text input — typing certain words triggers effects
+  function checkMagicWord(text) {
+    if (!text) return false;
+    const lower = text.toLowerCase().trim().replace(/[!.?,]+$/, '');
+
+    // Rainbow background flash
+    if (/\b(rainbow|skittles)\b/.test(lower)) {
+      document.body.classList.remove('rainbow-mode');
+      void document.body.offsetWidth;
+      document.body.classList.add('rainbow-mode');
+      setTimeout(() => document.body.classList.remove('rainbow-mode'), 4500);
+      return true;
+    }
+    // Dream mode: floating Z's
+    if (/\b(pizza|bacon|treat|treats|snack|cookie|donut|donuts)\b/.test(lower)) {
+      launchDreamZs();
+      return true;
+    }
+    // Fart joke (kids love them)
+    if (/\b(fart|farts|toot|burp|burps|stinky)\b/.test(lower)) {
+      // Triple bark + wiggle (closest stand-in for an 8yo-friendly comedy reaction)
+      for (let i = 0; i < 3; i++) playBark({ delay: i * 0.12 });
+      const view = document.querySelector('.view.active');
+      const svg = view?.querySelector('.buddy-svg');
+      if (svg) performTrick(svg, 'wiggle');
+      flashBanner('💨 BISCUIT IS SHOCKED!');
+      return true;
+    }
+    // Magic word
+    if (/\b(abracadabra|alakazam|magic)\b/.test(lower)) {
+      launchConfetti();
+      flashBanner('✨ Magic! ✨');
+      return true;
+    }
+    return false;
+  }
+
+  function flashBanner(text) {
+    const banner = document.createElement('div');
+    banner.className = 'hide-banner';
+    banner.textContent = text;
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 2400);
+  }
+
+  function launchConfetti(n = 60) {
+    const colors = ['#FBBF24', '#3B82F6', '#22C55E', '#E66D7A', '#A855F7', '#F97316'];
+    for (let i = 0; i < n; i++) {
+      const piece = document.createElement('div');
+      piece.className = 'confetti-piece';
+      piece.style.left = (Math.random() * 100) + 'vw';
+      piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+      piece.style.animationDelay = (Math.random() * 0.4) + 's';
+      piece.style.animationDuration = (1.8 + Math.random() * 1.2) + 's';
+      document.body.appendChild(piece);
+      setTimeout(() => piece.remove(), 3500);
+    }
+  }
+
+  function launchDreamZs() {
+    const view = document.querySelector('.view.active');
+    const svg = view?.querySelector('.buddy-svg');
+    const rect = svg?.getBoundingClientRect();
+    if (!rect) return;
+    for (let i = 0; i < 6; i++) {
+      const z = document.createElement('div');
+      z.className = 'dream-z';
+      z.textContent = ['💤', 'Z', 'Z', '💭'][Math.floor(Math.random() * 4)];
+      z.style.left = (rect.left + rect.width * 0.5 + (Math.random() - 0.5) * 80) + 'px';
+      z.style.top = (rect.top + rect.height * 0.2) + 'px';
+      z.style.animationDelay = (i * 0.2) + 's';
+      document.body.appendChild(z);
+      setTimeout(() => z.remove(), 3500);
+    }
+  }
+
+  // 4) KONAMI CODE → super spin + confetti
+  const KONAMI = ['ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowLeft','ArrowRight','ArrowLeft','ArrowRight','b','a'];
+  let _konamiPos = 0;
+  document.addEventListener('keydown', (e) => {
+    const expected = KONAMI[_konamiPos];
+    const got = e.key.length === 1 ? e.key.toLowerCase() : e.key;
+    if (got === expected.toLowerCase()) {
+      _konamiPos++;
+      if (_konamiPos === KONAMI.length) {
+        _konamiPos = 0;
+        flashBanner('🎮 SUPER BISCUIT MODE! 🎮');
+        launchConfetti(120);
+        const view = document.querySelector('.view.active');
+        const svg = view?.querySelector('.buddy-svg');
+        if (svg) {
+          performTrick(svg, 'spin');
+          setTimeout(() => performTrick(svg, 'jump'), 1100);
+          setTimeout(() => performTrick(svg, 'wiggle'), 2000);
+        }
+        for (let i = 0; i < 4; i++) playBark({ delay: i * 0.2 });
+      }
+    } else {
+      _konamiPos = 0;
+    }
+  });
+
+  // Wire magic words into all text inputs (chat, story, curiosity, 20Q, robot)
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter') return;
+    const target = e.target;
+    if (!target || target.tagName !== 'INPUT' || target.type !== 'text') return;
+    // Magic word doesn't suppress the actual chat — just adds the effect
+    checkMagicWord(target.value);
+  });
+
+  // ============================================================
 
   // Random idle tricks every 22-40 seconds while the app is open
   setInterval(() => {

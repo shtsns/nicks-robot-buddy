@@ -188,17 +188,30 @@ def upcoming_events_block(birthday_mmdd: str, today: Optional[date] = None) -> s
         return ""
 
     lines = [f"Today is {today.strftime('%A, %B %d, %Y')}."]
+    closest_days = upcoming[0][0]
+
     for days, name in upcoming:
         if days == 0:
-            lines.append(f"TODAY is {name}!")
+            lines.append(f"🎉 TODAY IS {name.upper()}! Mention this proudly!")
         elif days == 1:
-            lines.append(f"Tomorrow is {name}!")
+            lines.append(f"⭐ TOMORROW IS {name}! Big deal — bring it up.")
+        elif days <= 7:
+            lines.append(f"⭐ {name} is only {days} days away — definitely a hype-worthy event.")
         else:
             lines.append(f"{name} is {days} days away.")
-    lines.append(
-        "Naturally reference an upcoming event SOMETIMES (not every reply — once "
-        "every few conversations) to build excitement. Don't force it."
-    )
+
+    if closest_days <= 7:
+        lines.append(
+            "There's an exciting event within the week — mention it ENERGETICALLY in your "
+            "first reply or two of this conversation, then naturally reference it as you "
+            "talk. Build excitement! Use phrases like 'only X more days!' or 'can you "
+            "believe [event] is so close?!'"
+        )
+    else:
+        lines.append(
+            "Naturally reference an upcoming event SOMETIMES (not every reply — once "
+            "every few conversations) to build excitement. Don't force it."
+        )
     return "\n".join(lines)
 
 
