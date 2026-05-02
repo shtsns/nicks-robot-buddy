@@ -235,9 +235,9 @@ html, body {
    loops perfectly. Custom easing curves replace the default ease-in-out
    for a more natural, springy feel. */
 
-/* Tail wag with both rotation AND a subtle vertical lift — feels alive */
+/* Tail wag — anchored to the redesigned tail base on the right side of the body */
 .tail-group {
-  transform-origin: 305px 285px;
+  transform-origin: 290px 282px;
   animation: wag 1.7s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 .buddy-svg.speaking .tail-group { animation: wag 0.42s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
@@ -249,14 +249,14 @@ html, body {
   100% { transform: rotate(-15deg) translateY(0); }
 }
 
-/* Ears: a primary bounce on different periods + a sporadic flick keyframe */
+/* Ears: anchored to their attach points at the top of the new bigger head */
 .ear-left {
-  transform-origin: 110px 80px;
+  transform-origin: 102px 78px;
   animation: earBounceL 3.1s cubic-bezier(0.42, 0, 0.58, 1) infinite,
              earFlickL 11s ease-in-out infinite;
 }
 .ear-right {
-  transform-origin: 290px 80px;
+  transform-origin: 298px 78px;
   animation: earBounceR 2.9s cubic-bezier(0.42, 0, 0.58, 1) infinite,
              earFlickR 13s ease-in-out infinite;
 }
@@ -280,15 +280,15 @@ html, body {
   6%   { transform: rotate(-2deg); }
 }
 
-/* Front legs: weight-shifting idle */
-.leg-left  { transform-origin: 160px 320px; animation: legSwayL 3.7s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
-.leg-right { transform-origin: 240px 320px; animation: legSwayR 3.5s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+/* Front legs: weight-shifting idle (anchored to leg tops on new body) */
+.leg-left  { transform-origin: 162px 325px; animation: legSwayL 3.7s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
+.leg-right { transform-origin: 238px 325px; animation: legSwayR 3.5s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
 @keyframes legSwayL { 0%, 100% { transform: rotate(0deg) translateY(0); } 50% { transform: rotate(-2deg) translateY(-1px); } }
 @keyframes legSwayR { 0%, 100% { transform: rotate(0deg) translateY(0); } 50% { transform: rotate(2deg) translateY(-1px); } }
 
 /* Body subtly bobs as if breathing through it */
 .body-group {
-  transform-origin: 200px 290px;
+  transform-origin: 200px 320px;
   animation: bodyBreath 3.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 @keyframes bodyBreath {
@@ -298,7 +298,7 @@ html, body {
 
 /* Head subtle bob — tied to body but slower so it desyncs naturally */
 .head-group {
-  transform-origin: 200px 240px;
+  transform-origin: 200px 230px;
   animation: headBob 4.5s cubic-bezier(0.42, 0, 0.58, 1) infinite;
 }
 @keyframes headBob {
