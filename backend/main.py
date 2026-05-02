@@ -426,22 +426,47 @@ GIT_INFO = _read_git_commit()
 
 def _prepare_runtime_html(commit: str) -> Path:
     """Read frontend/index.html, append cache-busting query strings to JS/CSS
-    references, ensure no-cache meta tags, and write a runtime copy that
-    pywebview loads. Avoids stale WebView2 cached JS/CSS after git pulls."""
+    references, ensure no-cache meta tags, inline the Lottie animation JSON,
+    and write a runtime copy that pywebview loads. Avoids stale WebView2
+    cached JS/CSS after git pulls AND avoids file:// XHR restrictions for
+    the Lottie data."""
+    import json as _json
     src = FRONTEND_INDEX.read_text(encoding="utf-8")
     cb = commit or "dev"
     src = src.replace('href="style.css"', f'href="style.css?v={cb}"')
     src = src.replace('src="app.js"', f'src="app.js?v={cb}"')
+    src = src.replace('src="lib/lottie.min.js"', f'src="lib/lottie.min.js?v={cb}"')
     if "Cache-Control" not in src:
         src = src.replace(
             "<head>",
             '<head>\n  <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">\n  <meta http-equiv="Pragma" content="no-cache">',
             1,
         )
-    # Inject a global window.BUDDY_VERSION for diagnostic visibility
+
+    # Inline the Lottie JSON so the app works offline and so we don't have
+    # to fight WebView2's file:// XHR restrictions. Also expose the
+    # BUDDY_VERSION for diagnostics.
+    lottie_path = PROJECT_ROOT / "assets" / "lottie" / "biscuit.json"
+    lottie_inline = ""
+    if lottie_path.exists():
+        try:
+            data = _json.loads(lottie_path.read_text(encoding="utf-8"))
+            # Compact, but escape so it survives being placed inside a <script>
+            json_str = _json.dumps(data, separators=(",", ":"))
+            # Escape </script> just in case
+            json_str = json_str.replace("</", "<\\/")
+            lottie_inline = f"window.BISCUIT_LOTTIE_DATA = {json_str};"
+        except Exception as e:
+            print(f"[buddy] failed to inline Lottie JSON: {e}")
+
+    boot_script = (
+        f'<script>window.BUDDY_VERSION = "{cb}";'
+        f'{lottie_inline}'
+        f'</script>\n  '
+    )
     src = src.replace(
         "<script src=\"app.js?v=",
-        f'<script>window.BUDDY_VERSION = "{cb}";</script>\n  <script src="app.js?v=',
+        f'{boot_script}<script src="app.js?v=',
     )
     runtime = FRONTEND_INDEX.parent / ".runtime_index.html"
     runtime.write_text(src, encoding="utf-8")

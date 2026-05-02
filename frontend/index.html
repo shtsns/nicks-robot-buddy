@@ -273,7 +273,10 @@
 
   </main>
 
-  <template id="buddy-template">
+  <!-- Legacy hand-coded SVG template — no longer rendered (Lottie handles
+       the avatar now). Kept as a structural reference in case we ever need
+       the emoji-fallback or want to A/B against a coded version. -->
+  <template id="buddy-template-legacy">
     <!-- Biscuit — head-dominant mascot pose. Flat colors only (no gradients
          that break across cloned templates). Big head, peek of chest at the
          bottom, no awkward legs. Reads cleanly at any size. -->
@@ -398,6 +401,7 @@
     </svg>
   </template>
 
+  <script src="lib/lottie.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
