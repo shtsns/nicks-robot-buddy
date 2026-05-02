@@ -330,6 +330,21 @@ class API:
                 continue
         return {"ok": True, "photos": items}
 
+    def delete_photo(self, filename: str) -> dict:
+        """Delete a photo by filename. Filename validated against the photos
+        directory so the API can't be tricked into deleting arbitrary paths."""
+        from backend.memory import photos_dir
+        if not isinstance(filename, str) or "/" in filename or "\\" in filename or ".." in filename:
+            return {"ok": False, "error": "invalid filename"}
+        target = photos_dir() / filename
+        if not target.exists() or not target.is_file():
+            return {"ok": False, "error": "not found"}
+        try:
+            target.unlink()
+            return {"ok": True}
+        except Exception as e:
+            return {"ok": False, "error": str(e)}
+
     def open_photos_folder(self) -> dict:
         """Open the photos folder in Windows Explorer."""
         import subprocess

@@ -736,22 +736,28 @@ body.rainbow-mode {
 .photobooth-gallery {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  max-width: 880px;
-  padding: 8px;
+  max-width: 1100px;
+  padding: 10px;
   background: rgba(255, 255, 255, 0.6);
   border-radius: 14px;
   border: 2px dashed #FBBF24;
-  min-height: 80px;
+  min-height: 90px;
 }
 .photobooth-gallery img {
-  width: 110px;
-  height: 80px;
+  width: 140px;
+  height: 100px;
   object-fit: cover;
-  border-radius: 8px;
-  border: 2px solid #FBBF24;
-  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  border-radius: 10px;
+  border: 3px solid #FBBF24;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.photobooth-gallery img:hover {
+  transform: scale(1.05) rotate(-1deg);
+  box-shadow: 0 6px 14px rgba(0, 0, 0, 0.25);
 }
 .photobooth-gallery .empty {
   color: #78350F;
@@ -759,6 +765,260 @@ body.rainbow-mode {
   width: 100%;
   text-align: center;
   padding: 20px;
+}
+
+/* ---------- STICKER LAYER on the live video ---------- */
+.photobooth-stickers {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 5;
+}
+.photobooth-stickers .sticker {
+  position: absolute;
+  font-size: 64px;
+  user-select: none;
+  pointer-events: auto;
+  cursor: grab;
+  filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+  touch-action: none;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  transition: transform 0.05s ease;
+}
+.photobooth-stickers .sticker:hover { transform: translate(-50%, -50%) scale(1.08); }
+.photobooth-stickers .sticker.dragging { cursor: grabbing; transform: translate(-50%, -50%) scale(1.15); }
+.photobooth-stickers .sticker .x-btn {
+  position: absolute;
+  top: -6px; right: -6px;
+  width: 22px; height: 22px;
+  border-radius: 50%;
+  background: #DC2626;
+  color: white;
+  font-size: 14px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  cursor: pointer;
+  border: 2px solid white;
+}
+.photobooth-stickers .sticker:hover .x-btn,
+.photobooth-stickers .sticker.dragging .x-btn { display: flex; }
+
+/* ---------- FRAME OVERLAYS ---------- */
+.photobooth-frame-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 4;
+}
+.photobooth-frame-overlay.frame-polaroid {
+  background:
+    linear-gradient(white, white) top / 100% 6% no-repeat,
+    linear-gradient(white, white) bottom / 100% 18% no-repeat,
+    linear-gradient(white, white) left / 4% 100% no-repeat,
+    linear-gradient(white, white) right / 4% 100% no-repeat;
+}
+.photobooth-frame-overlay.frame-sparkle::before,
+.photobooth-frame-overlay.frame-sparkle::after,
+.photobooth-frame-overlay.frame-birthday::before,
+.photobooth-frame-overlay.frame-birthday::after,
+.photobooth-frame-overlay.frame-comic::before,
+.photobooth-frame-overlay.frame-comic::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.photobooth-frame-overlay.frame-sparkle {
+  box-shadow: inset 0 0 0 8px #FBBF24, inset 0 0 0 12px #F59E0B;
+}
+.photobooth-frame-overlay.frame-sparkle::before {
+  background:
+    radial-gradient(circle at 5% 5%, #FBBF24 12px, transparent 13px),
+    radial-gradient(circle at 95% 5%, #FBBF24 12px, transparent 13px),
+    radial-gradient(circle at 5% 95%, #FBBF24 12px, transparent 13px),
+    radial-gradient(circle at 95% 95%, #FBBF24 12px, transparent 13px);
+}
+.photobooth-frame-overlay.frame-birthday {
+  box-shadow: inset 0 0 0 8px #EC4899, inset 0 0 0 12px #BE185D;
+}
+.photobooth-frame-overlay.frame-comic {
+  box-shadow: inset 0 0 0 10px #FBBF24, inset 0 0 0 14px #1A1A1A;
+}
+
+/* ---------- COUNTDOWN ---------- */
+.photobooth-countdown {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Comic Sans MS', sans-serif;
+  font-size: 220px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 0 4px 12px rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+  z-index: 8;
+}
+.photobooth-countdown.hidden { display: none; }
+.photobooth-countdown.popping {
+  animation: countdownPop 0.85s ease-out;
+}
+@keyframes countdownPop {
+  0%   { transform: scale(2.2); opacity: 0; }
+  20%  { transform: scale(0.9); opacity: 1; }
+  60%  { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(1.4); opacity: 0; }
+}
+
+/* ---------- CONTROLS ---------- */
+.photobooth-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 12px 0 8px;
+  padding: 10px 16px;
+  background: rgba(255, 255, 255, 0.7);
+  border-radius: 14px;
+  align-items: center;
+}
+.control-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 220px;
+}
+.control-label {
+  font-weight: bold;
+  color: #4A3320;
+  font-size: 14px;
+  white-space: nowrap;
+}
+#photobooth-caption {
+  flex: 1;
+  font-family: inherit;
+  font-size: 16px;
+  padding: 8px 14px;
+  border: 2px solid #FBBF24;
+  border-radius: 10px;
+  background: white;
+}
+.frame-picker, .mode-picker {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.frame-btn, .mode-btn {
+  font-family: inherit;
+  padding: 6px 12px;
+  font-size: 18px;
+  background: white;
+  border: 2px solid #FBBF24;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.frame-btn:hover, .mode-btn:hover {
+  border-color: #3B82F6;
+  transform: translateY(-1px);
+}
+.frame-btn.active, .mode-btn.active {
+  background: #3B82F6;
+  color: white;
+  border-color: #1E40AF;
+}
+.mode-btn { font-size: 13px; padding: 8px 12px; }
+
+/* ---------- STICKER PALETTE ---------- */
+.sticker-palette {
+  width: 100%;
+  max-width: 1100px;
+  background: white;
+  border: 3px solid #FBBF24;
+  border-radius: 16px;
+  padding: 12px 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 4px 12px rgba(180, 83, 9, 0.12);
+}
+.sticker-tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
+  border-bottom: 2px dashed #FBBF24;
+}
+.sticker-tab {
+  font-family: inherit;
+  padding: 6px 12px;
+  font-size: 13px;
+  background: white;
+  border: 2px solid #FBBF24;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
+  color: #78350F;
+}
+.sticker-tab.active { background: #FBBF24; color: #4A3320; }
+.sticker-tab:hover { background: #FEF3C7; }
+.sticker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(54px, 1fr));
+  gap: 6px;
+  max-height: 130px;
+  overflow-y: auto;
+  padding: 4px;
+}
+.sticker-grid button {
+  font-size: 32px;
+  padding: 4px;
+  background: #FFFBF0;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  line-height: 1;
+}
+.sticker-grid button:hover {
+  background: #FEF3C7;
+  border-color: #FBBF24;
+  transform: scale(1.15);
+}
+.sticker-grid button:active {
+  transform: scale(0.92);
+}
+#stickers-clear {
+  margin-top: 8px;
+}
+
+/* ---------- PHOTO VIEWER MODAL ---------- */
+.photo-viewer-content {
+  background: white;
+  padding: 16px;
+  border-radius: 18px;
+  max-width: 92vw;
+  max-height: 92vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+#photo-viewer-img {
+  max-width: 100%;
+  max-height: 75vh;
+  border-radius: 10px;
+  border: 3px solid #FBBF24;
+}
+.photo-viewer-actions {
+  display: flex;
+  gap: 12px;
 }
 
 /* Biscuit's Notebook form */

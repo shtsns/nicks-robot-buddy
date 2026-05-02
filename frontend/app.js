@@ -1392,7 +1392,23 @@
     }
   });
 
-  // ----- PHOTO BOOTH -----
+  // ============================================================
+  // PHOTO BOOTH — stickers + frames + countdown + caption + strip mode
+  // ============================================================
+
+  // Sticker palette by category. Each tap on a sticker emoji adds a draggable
+  // copy to the live preview. Bakes into the saved photo at capture time.
+  const STICKER_CATEGORIES = {
+    "Hats & Cool":  ['🎩','👑','🎓','🤠','🎅','🎃','🧢','🥽','🦸','🧙','🥇'],
+    "Faces":        ['😀','😎','🤩','😂','🥺','😴','🤔','🥳','😜','🤪','🤣','🥹'],
+    "Hearts ❤":     ['❤️','💖','💕','💗','💜','🧡','💛','💚','💙','❣️','💘','💝'],
+    "Sparkles ✨":  ['⭐','✨','🌟','💫','🌠','🎆','🎇','💥','🔥','⚡','🌈','☀️'],
+    "Food":         ['🍕','🍔','🍦','🍩','🍪','🎂','🍫','🍭','🍿','🌮','🥨','🥕'],
+    "Animals":      ['🐶','🐱','🦄','🦖','🐸','🦊','🐧','🐼','🦁','🐯','🐰','🐢'],
+    "Toys & Stuff": ['🧸','⚽','🎈','🎮','🚀','🚲','🏈','🎨','🎁','🎵','💎','👻'],
+    "Random":       ['🌈','🦴','🐾','🐉','🍀','🍄','🌸','💩','🤖','👽','🍾','🎊'],
+  };
+
   let _videoStream = null;
 
   function getEl(id) { return document.getElementById(id); }
@@ -1453,6 +1469,200 @@
     });
   }
 
+  // ----- STICKERS -----
+  // Each sticker is a {emoji, x, y} where x/y are 0..1 normalized over the
+  // preview area. We store them so we can re-render to canvas at capture time.
+  let _stickers = [];
+  let _stickerIdSeq = 0;
+
+  function buildStickerPalette() {
+    const tabs = getEl('sticker-tabs');
+    const grid = getEl('sticker-grid');
+    if (!tabs || !grid) return;
+    tabs.innerHTML = '';
+    let firstCategory = null;
+    Object.keys(STICKER_CATEGORIES).forEach((cat) => {
+      const tab = document.createElement('button');
+      tab.className = 'sticker-tab';
+      tab.textContent = cat;
+      tab.dataset.category = cat;
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.sticker-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
+        renderStickerGrid(cat);
+      });
+      tabs.appendChild(tab);
+      if (!firstCategory) firstCategory = cat;
+    });
+    if (firstCategory) {
+      tabs.firstElementChild.classList.add('active');
+      renderStickerGrid(firstCategory);
+    }
+  }
+
+  function renderStickerGrid(category) {
+    const grid = getEl('sticker-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    (STICKER_CATEGORIES[category] || []).forEach((emoji) => {
+      const btn = document.createElement('button');
+      btn.textContent = emoji;
+      btn.title = 'Add ' + emoji;
+      btn.addEventListener('click', () => addSticker(emoji));
+      grid.appendChild(btn);
+    });
+  }
+
+  function addSticker(emoji) {
+    // Center of the stage by default (50% / 50%)
+    const sticker = { id: ++_stickerIdSeq, emoji, x: 0.5, y: 0.5 };
+    _stickers.push(sticker);
+    renderStickerOnStage(sticker);
+  }
+
+  function renderStickerOnStage(sticker) {
+    const layer = getEl('photobooth-stickers');
+    if (!layer) return;
+    const el = document.createElement('div');
+    el.className = 'sticker';
+    el.dataset.stickerId = String(sticker.id);
+    el.textContent = sticker.emoji;
+    el.style.left = (sticker.x * 100) + '%';
+    el.style.top = (sticker.y * 100) + '%';
+    const x = document.createElement('div');
+    x.className = 'x-btn';
+    x.textContent = '×';
+    x.addEventListener('mousedown', (e) => { e.stopPropagation(); removeSticker(sticker.id); });
+    x.addEventListener('touchstart', (e) => { e.stopPropagation(); e.preventDefault(); removeSticker(sticker.id); });
+    el.appendChild(x);
+    el.addEventListener('mousedown', (e) => startStickerDrag(e, sticker, el));
+    el.addEventListener('touchstart', (e) => startStickerDrag(e, sticker, el), { passive: false });
+    layer.appendChild(el);
+  }
+
+  function removeSticker(id) {
+    _stickers = _stickers.filter(s => s.id !== id);
+    const el = document.querySelector(`.sticker[data-sticker-id="${id}"]`);
+    if (el) el.remove();
+  }
+
+  function clearAllStickers() {
+    _stickers = [];
+    const layer = getEl('photobooth-stickers');
+    if (layer) layer.innerHTML = '';
+  }
+
+  function startStickerDrag(e, sticker, el) {
+    e.preventDefault();
+    const layer = getEl('photobooth-stickers');
+    const layerRect = layer.getBoundingClientRect();
+    el.classList.add('dragging');
+
+    function eventToXY(ev) {
+      const t = ev.touches ? ev.touches[0] : ev;
+      return [t.clientX, t.clientY];
+    }
+
+    function move(ev) {
+      const [cx, cy] = eventToXY(ev);
+      const x = Math.max(0, Math.min(1, (cx - layerRect.left) / layerRect.width));
+      const y = Math.max(0, Math.min(1, (cy - layerRect.top) / layerRect.height));
+      sticker.x = x;
+      sticker.y = y;
+      el.style.left = (x * 100) + '%';
+      el.style.top = (y * 100) + '%';
+    }
+    function up() {
+      el.classList.remove('dragging');
+      document.removeEventListener('mousemove', move);
+      document.removeEventListener('mouseup', up);
+      document.removeEventListener('touchmove', move);
+      document.removeEventListener('touchend', up);
+    }
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+    document.addEventListener('touchmove', move, { passive: false });
+    document.addEventListener('touchend', up);
+  }
+
+  // ----- FRAMES (drawn onto canvas at capture time) -----
+  let _activeFrame = 'none';
+
+  const FRAME_RENDERERS = {
+    none: () => {},
+    polaroid: (ctx, w, h) => {
+      const b = Math.round(w * 0.04);
+      const bb = Math.round(h * 0.18);
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, w, b);
+      ctx.fillRect(0, h - bb, w, bb);
+      ctx.fillRect(0, 0, b, h);
+      ctx.fillRect(w - b, 0, b, h);
+    },
+    sparkle: (ctx, w, h) => {
+      ctx.strokeStyle = '#FBBF24';
+      ctx.lineWidth = w * 0.025;
+      ctx.strokeRect(ctx.lineWidth / 2, ctx.lineWidth / 2, w - ctx.lineWidth, h - ctx.lineWidth);
+      // Star sparkles in corners
+      const drawStar = (cx, cy, r) => {
+        ctx.fillStyle = '#FBBF24';
+        ctx.font = `${r * 2}px Arial, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('✨', cx, cy);
+      };
+      const r = w * 0.045;
+      drawStar(r * 1.4, r * 1.4, r);
+      drawStar(w - r * 1.4, r * 1.4, r);
+      drawStar(r * 1.4, h - r * 1.4, r);
+      drawStar(w - r * 1.4, h - r * 1.4, r);
+    },
+    birthday: (ctx, w, h) => {
+      ctx.strokeStyle = '#EC4899';
+      ctx.lineWidth = w * 0.025;
+      ctx.strokeRect(ctx.lineWidth / 2, ctx.lineWidth / 2, w - ctx.lineWidth, h - ctx.lineWidth);
+      const r = w * 0.05;
+      ctx.font = `${r * 2}px Arial, "Apple Color Emoji", "Segoe UI Emoji"`;
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      const items = ['🎈','🎂','🎉','🎊'];
+      items.forEach((e, i) => {
+        const cx = (i % 2 === 0) ? r * 1.4 : w - r * 1.4;
+        const cy = (i < 2) ? r * 1.4 : h - r * 1.4;
+        ctx.fillText(e, cx, cy);
+      });
+    },
+    comic: (ctx, w, h) => {
+      ctx.strokeStyle = '#1A1A1A';
+      ctx.lineWidth = w * 0.03;
+      ctx.strokeRect(ctx.lineWidth / 2, ctx.lineWidth / 2, w - ctx.lineWidth, h - ctx.lineWidth);
+      ctx.strokeStyle = '#FBBF24';
+      ctx.lineWidth = w * 0.018;
+      const inset = w * 0.045;
+      ctx.strokeRect(inset, inset, w - inset * 2, h - inset * 2);
+      // POW! star top-left
+      ctx.fillStyle = '#DC2626';
+      ctx.font = `bold ${w * 0.07}px "Comic Sans MS", sans-serif`;
+      ctx.textAlign = 'left'; ctx.textBaseline = 'top';
+      ctx.fillText('POW!', w * 0.06, h * 0.06);
+    },
+  };
+
+  // ----- COUNTDOWN -----
+  function showCountdown(text) {
+    return new Promise((resolve) => {
+      const el = getEl('photobooth-countdown');
+      if (!el) { resolve(); return; }
+      el.classList.remove('hidden', 'popping');
+      el.textContent = text;
+      void el.offsetWidth;
+      el.classList.add('popping');
+      setTimeout(() => {
+        el.classList.add('hidden');
+        resolve();
+      }, 850);
+    });
+  }
+
   async function captureFrame() {
     const video = getEl('photobooth-video');
     if (!video || !video.videoWidth) throw new Error('Camera not ready');
@@ -1461,26 +1671,117 @@
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
 
-    // Mirror the video frame (selfie style)
+    // 1. Mirror the video frame (selfie style)
     ctx.save();
     ctx.scale(-1, 1);
     ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
     ctx.restore();
 
-    // Composite Biscuit overlay in the bottom-right corner
-    try {
-      const svgEl = buddies.photobooth;
-      if (svgEl) {
-        const img = await svgToImage(svgEl);
-        const overlayW = canvas.width * 0.28;
-        const overlayH = overlayW;
-        const margin = canvas.width * 0.03;
-        ctx.drawImage(img, canvas.width - overlayW - margin, canvas.height - overlayH - margin, overlayW, overlayH);
-      }
-    } catch (err) {
-      console.warn('[buddy] biscuit overlay failed:', err);
+    // 2. Stickers (rendered as text — emojis are color glyphs in modern browsers)
+    if (_stickers.length) {
+      const stickerSize = canvas.width * 0.13;
+      ctx.font = `${stickerSize}px Arial, "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji"`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      _stickers.forEach((s) => {
+        ctx.fillText(s.emoji, s.x * canvas.width, s.y * canvas.height);
+      });
     }
+
+    // 3. Caption text — drawn at the bottom over a translucent backing
+    const captionInput = getEl('photobooth-caption');
+    const caption = captionInput ? captionInput.value.trim() : '';
+    if (caption) {
+      const fontSize = Math.round(canvas.width * 0.05);
+      ctx.font = `bold ${fontSize}px "Comic Sans MS", sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      const textY = canvas.height - canvas.height * 0.05;
+      // Backing for legibility
+      const metrics = ctx.measureText(caption);
+      const padX = fontSize * 0.6;
+      const padY = fontSize * 0.3;
+      const bgX = canvas.width / 2 - metrics.width / 2 - padX;
+      const bgY = textY - fontSize - padY * 0.2;
+      const bgW = metrics.width + padX * 2;
+      const bgH = fontSize + padY * 1.2;
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      ctx.fillRect(bgX, bgY, bgW, bgH);
+      ctx.strokeStyle = '#FBBF24';
+      ctx.lineWidth = 4;
+      ctx.strokeRect(bgX, bgY, bgW, bgH);
+      ctx.fillStyle = '#4A3320';
+      ctx.fillText(caption, canvas.width / 2, textY);
+    }
+
+    // 4. Frame overlay (drawn over everything)
+    const frameFn = FRAME_RENDERERS[_activeFrame] || FRAME_RENDERERS.none;
+    frameFn(ctx, canvas.width, canvas.height);
+
     return canvas.toDataURL('image/jpeg', 0.88);
+  }
+
+  // ----- PHOTO STRIP -----
+  // 4 captures with countdowns between, stacked vertically into one image.
+  let _activeMode = 'single';
+
+  async function captureStrip() {
+    const shots = [];
+    for (let i = 0; i < 4; i++) {
+      await showCountdown('3');
+      await showCountdown('2');
+      await showCountdown('1');
+      await showCountdown('📸');
+      flashSnap();
+      playBark({ variation: BARK_VARIATIONS[1] });
+      const dataUrl = await captureFrame();
+      shots.push(dataUrl);
+      // Brief pause before next shot
+      await new Promise(r => setTimeout(r, 500));
+    }
+    return await stitchStrip(shots);
+  }
+
+  async function stitchStrip(dataUrls) {
+    const imgs = await Promise.all(dataUrls.map(url => new Promise((res, rej) => {
+      const img = new Image();
+      img.onload = () => res(img);
+      img.onerror = rej;
+      img.src = url;
+    })));
+    const w = imgs[0].naturalWidth;
+    const h = imgs[0].naturalHeight;
+    const headerH = Math.round(w * 0.08);
+    const gap = Math.round(w * 0.015);
+    const totalH = headerH + (h * imgs.length) + (gap * (imgs.length + 1));
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = totalH;
+    const ctx = canvas.getContext('2d');
+    // Background: yellow strip backing
+    ctx.fillStyle = '#FBBF24';
+    ctx.fillRect(0, 0, w, totalH);
+    // Header
+    ctx.fillStyle = '#4A3320';
+    ctx.font = `bold ${Math.round(headerH * 0.55)}px "Comic Sans MS", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('Nick & Biscuit 🐶', w / 2, headerH / 2);
+    // Photos
+    let y = headerH + gap;
+    imgs.forEach((img) => {
+      ctx.drawImage(img, gap, y, w - gap * 2, h);
+      y += h + gap;
+    });
+    return canvas.toDataURL('image/jpeg', 0.88);
+  }
+
+  function flashSnap() {
+    const flash = getEl('photobooth-flash');
+    if (!flash) return;
+    flash.classList.remove('snap');
+    void flash.offsetWidth;
+    flash.classList.add('snap');
   }
 
   const photoboothSnap = getEl('photobooth-snap');
@@ -1500,12 +1801,21 @@
       return;
     }
     photoboothSnap.disabled = true;
-    photoboothFlash?.classList.remove('snap');
-    void photoboothFlash?.offsetWidth;
-    photoboothFlash?.classList.add('snap');
-    playBark();
     try {
-      const dataUrl = await captureFrame();
+      let dataUrl;
+      if (_activeMode === 'strip') {
+        dataUrl = await captureStrip();
+      } else {
+        await showCountdown('3');
+        await showCountdown('2');
+        await showCountdown('1');
+        await showCountdown('📸');
+        flashSnap();
+        playBark();
+        dataUrl = await captureFrame();
+      }
+      // Confetti celebration
+      launchConfetti(40);
       _pendingDataUrl = dataUrl;
       if (photoboothPreviewImg) photoboothPreviewImg.src = dataUrl;
       photoboothPreview?.classList.remove('hidden');
@@ -1515,6 +1825,63 @@
     } finally {
       photoboothSnap.disabled = false;
     }
+  });
+
+  // Frame picker
+  document.querySelectorAll('.frame-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.frame-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _activeFrame = btn.dataset.frame;
+      const overlay = getEl('photobooth-frame-overlay');
+      if (overlay) {
+        overlay.className = 'photobooth-frame-overlay frame-' + _activeFrame;
+      }
+    });
+  });
+
+  // Mode picker (single vs strip)
+  document.querySelectorAll('.mode-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.mode-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      _activeMode = btn.dataset.mode;
+      // Update SNAP button label to match mode
+      if (photoboothSnap) {
+        photoboothSnap.textContent = _activeMode === 'strip' ? '🎞️ START STRIP!' : '📷 SNAP!';
+      }
+    });
+  });
+
+  // Clear all stickers button
+  getEl('stickers-clear')?.addEventListener('click', clearAllStickers);
+
+  // Build the sticker palette once on first photobooth view enter
+  let _paletteBuilt = false;
+  document.addEventListener('viewchange', (e) => {
+    if (e.detail.id === 'view-photobooth' && !_paletteBuilt) {
+      buildStickerPalette();
+      _paletteBuilt = true;
+    }
+  });
+
+  // Photo viewer modal — click any gallery thumbnail to expand
+  const photoViewer = getEl('photo-viewer');
+  const photoViewerImg = getEl('photo-viewer-img');
+  const photoViewerClose = getEl('photo-viewer-close');
+  const photoViewerDelete = getEl('photo-viewer-delete');
+  let _viewerCurrentFile = null;
+
+  photoViewerClose?.addEventListener('click', () => photoViewer.classList.add('hidden'));
+  photoViewer?.addEventListener('click', (e) => {
+    if (e.target === photoViewer) photoViewer.classList.add('hidden');
+  });
+  photoViewerDelete?.addEventListener('click', async () => {
+    if (!_viewerCurrentFile) return;
+    if (!confirm('Delete this photo?')) return;
+    const result = await callApi('delete_photo', _viewerCurrentFile);
+    photoViewer.classList.add('hidden');
+    if (result && result.ok) refreshGallery();
   });
 
   photoboothKeep?.addEventListener('click', async () => {
@@ -1555,7 +1922,12 @@
       const img = document.createElement('img');
       img.src = p.data_url;
       img.alt = p.filename;
-      img.title = p.filename;
+      img.title = 'Click to open ' + p.filename;
+      img.addEventListener('click', () => {
+        if (photoViewerImg) photoViewerImg.src = p.data_url;
+        _viewerCurrentFile = p.filename;
+        photoViewer?.classList.remove('hidden');
+      });
       photoboothGallery.appendChild(img);
     }
   }

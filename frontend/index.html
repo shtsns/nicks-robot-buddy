@@ -211,9 +211,17 @@
       <h3 class="view-title">📸 Photo Booth with Biscuit</h3>
       <div class="photobooth-stage">
         <video id="photobooth-video" autoplay playsinline muted></video>
+        <!-- Sticker overlay layer — stickers live here over the video,
+             draggable, baked into the saved photo at capture time. -->
+        <div id="photobooth-stickers" class="photobooth-stickers"></div>
+        <!-- Lottie Biscuit corner companion -->
         <div class="photobooth-biscuit-overlay">
           <div id="buddy-photobooth"></div>
         </div>
+        <!-- Frame preview overlay (CSS frames around the live video) -->
+        <div id="photobooth-frame-overlay" class="photobooth-frame-overlay frame-none"></div>
+        <!-- Big 3-2-1 countdown -->
+        <div id="photobooth-countdown" class="photobooth-countdown hidden"></div>
         <div id="photobooth-flash" class="photobooth-flash"></div>
         <div id="photobooth-preview" class="photobooth-preview hidden">
           <img id="photobooth-preview-img" alt="captured photo">
@@ -224,11 +232,56 @@
         </div>
         <div id="photobooth-status" class="photobooth-status">Loading camera...</div>
       </div>
+
+      <!-- Caption + frame controls -->
+      <div class="photobooth-controls">
+        <div class="control-group">
+          <label class="control-label">Caption:</label>
+          <input id="photobooth-caption" type="text" maxlength="50"
+                 placeholder="Add a fun caption (optional)" autocomplete="off">
+        </div>
+        <div class="control-group">
+          <label class="control-label">Frame:</label>
+          <div class="frame-picker" id="photobooth-frame-picker">
+            <button class="frame-btn active" data-frame="none" title="No frame">⬜</button>
+            <button class="frame-btn" data-frame="polaroid" title="Polaroid">📄</button>
+            <button class="frame-btn" data-frame="sparkle" title="Sparkles">✨</button>
+            <button class="frame-btn" data-frame="birthday" title="Birthday">🎂</button>
+            <button class="frame-btn" data-frame="comic" title="Comic">💥</button>
+          </div>
+        </div>
+        <div class="control-group">
+          <label class="control-label">Mode:</label>
+          <div class="mode-picker">
+            <button class="mode-btn active" data-mode="single">📷 Single</button>
+            <button class="mode-btn" data-mode="strip">🎞️ Photo Strip (×4)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Sticker palette: tabbed categories -->
+      <div class="sticker-palette">
+        <div class="sticker-tabs" id="sticker-tabs"></div>
+        <div class="sticker-grid" id="sticker-grid"></div>
+        <button id="stickers-clear" class="small-btn" title="Remove all stickers">🗑️ Clear stickers</button>
+      </div>
+
       <div class="photobooth-actions">
         <button id="photobooth-snap" class="big-btn">📷 SNAP!</button>
         <button id="photobooth-folder" class="small-btn">📂 Open photos folder</button>
       </div>
       <div id="photobooth-gallery" class="photobooth-gallery"></div>
+
+      <!-- Fullscreen photo viewer (click any gallery thumbnail) -->
+      <div id="photo-viewer" class="modal hidden" role="dialog">
+        <div class="photo-viewer-content">
+          <img id="photo-viewer-img" alt="">
+          <div class="photo-viewer-actions">
+            <button id="photo-viewer-delete" class="small-btn" style="background:#FEE2E2;border-color:#DC2626;color:#991B1B;">🗑 Delete</button>
+            <button id="photo-viewer-close" class="send-btn">Close</button>
+          </div>
+        </div>
+      </div>
     </section>
 
     <section id="view-dance" class="view">
