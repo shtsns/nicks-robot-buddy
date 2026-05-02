@@ -146,15 +146,15 @@ class API:
         }
 
     def set_api_key(self, name: str, value: str) -> dict:
-        """Save an API key to Documents/NicksRobotBuddy/secrets.json. The
-        change requires an app restart to take effect (env vars/clients are
-        initialized at startup)."""
+        """Save an API key to Documents/NicksRobotBuddy/secrets.json.
+        Takes effect immediately — both ElevenLabs and Anthropic clients
+        re-resolve the key on every call, so no restart is needed."""
         from backend.secrets import get_secrets, KEY_REGISTRY
         valid_names = set(KEY_REGISTRY.values())
         if name not in valid_names:
             return {"ok": False, "error": f"unknown key '{name}'"}
         get_secrets().set(name, (value or "").strip())
-        return {"ok": True, "restart_required": True}
+        return {"ok": True}
 
     def get_version_info(self) -> dict:
         """Diagnostic snapshot: what version + deps are actually loaded.
@@ -455,6 +455,19 @@ def main() -> None:
 
     runtime_html = _prepare_runtime_html(GIT_INFO.get("short", ""))
     print(f"[buddy] starting build {GIT_INFO.get('short', '?')} on branch {GIT_INFO.get('branch', '?')}")
+
+    # Warm Whisper in the background so it's loaded by the time Nick uses
+    # the mic. Doesn't block startup. First-time download (~75MB) happens
+    # silently. Once warm, transcription is instant.
+    def _warm_whisper():
+        try:
+            from backend.voice import _get_whisper_model
+            print("[buddy] warming Whisper model in background...")
+            _get_whisper_model()
+            print("[buddy] Whisper warm and ready")
+        except Exception as e:
+            print(f"[buddy] Whisper warm failed: {e}")
+    threading.Thread(target=_warm_whisper, daemon=True).start()
 
     api = API()
     window = webview.create_window(

@@ -938,8 +938,18 @@
       btn.textContent = 'Save';
       if (result && result.ok) {
         input.value = '';
-        flashBanner('🔑 Key saved! Close and reopen the app to use it.');
-        refreshKeyStatus();
+        flashBanner('🔑 Key saved! Working immediately, no restart needed.');
+        // Refresh state so the rest of the app picks up the new key:
+        //   - Status dot in this modal goes green
+        //   - elevenReady flag flips on, so speak() routes through ElevenLabs
+        //   - Voice picker reloads with ElevenLabs voices instead of system ones
+        await refreshKeyStatus();
+        const status = await callApi('get_status');
+        if (status) {
+          elevenReady = !!status.eleven_ready;
+        }
+        await refreshVoiceList();
+        await refreshDiagnostics();
       } else {
         alert('Save failed: ' + (result && result.error || 'unknown'));
       }
@@ -957,19 +967,25 @@
     const val = (v) => `<span class="diag-val">${String(v).replace(/[<>&]/g, '')}</span>`;
     const row = (k, v) => `<div class="diag-row"><span class="diag-key">${k}</span>${v}</div>`;
 
+    // Whisper: "loaded" before first use is fine — it warms in the background
+    // at startup. We treat installed+ready-to-warm as green.
+    const whisperLabel = info.whisper_installed
+      ? (info.whisper_loaded ? 'loaded ✓' : 'installed (loads on first use)')
+      : 'NOT INSTALLED';
+    const whisperOk = !!info.whisper_installed;
+
     body.innerHTML = [
       row('build commit', val(info.commit + (info.branch ? ` (${info.branch})` : ''))),
       row('JS bundle ver', val(window.BUDDY_VERSION || '?')),
       row('python', val(info.python)),
-      row('anthropic ready', yesno(info.anthropic_ready)),
+      row('Anthropic (chat)', yesno(info.anthropic_ready)),
       row('anthropic SDK', val(info.anthropic_version)),
-      row('ElevenLabs key', yesno(info.eleven_ready)),
-      row('Whisper installed', yesno(info.whisper_installed)),
-      row('Whisper loaded', yesno(info.whisper_loaded)),
+      row('ElevenLabs (voice)', yesno(info.eleven_ready)),
+      row('Whisper (mic)', whisperOk ? `<span class="diag-val ok">${whisperLabel}</span>` : `<span class="diag-val bad">${whisperLabel}</span>`),
       info.whisper_error ? row('Whisper error', `<span class="diag-val bad">${info.whisper_error}</span>`) : '',
-      row('Mic (PyAudio)', yesno(info.voice_pyaudio)),
+      row('PyAudio (recording)', yesno(info.voice_pyaudio)),
       row('bundled barks', val(info.bundled_barks + ' files')),
-    ].join('');
+    ].filter(Boolean).join('');
   }
 
   function persistVoiceChoice(value) {

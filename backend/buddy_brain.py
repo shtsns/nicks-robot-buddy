@@ -30,29 +30,44 @@ class BuddyBrain:  # class name kept for code stability; the persona is "Biscuit
         # skill_id -> list of {role, content} dicts
         self._histories: dict[str, list[dict]] = {}
         self._client = None
-        self._init_error = None
+        self._last_key: Optional[str] = None
+        self._init_error: Optional[str] = None
         self.memory = Memory()
+        self._explicit_key = api_key  # honor when passed for tests
+        self._refresh_client()
 
-        # Env var first, then secrets.json
-        key = api_key or resolve_key("ANTHROPIC_API_KEY")
+    def _refresh_client(self) -> None:
+        """Re-create the Anthropic client if the resolved key has changed.
+        Called automatically before every API request so saving a new key
+        via the in-app UI takes effect without a restart."""
+        key = self._explicit_key or resolve_key("ANTHROPIC_API_KEY")
+        if key == self._last_key:
+            return
+        self._last_key = key
         if not key:
+            self._client = None
             self._init_error = "Demo mode: no API key set. Biscuit is using a tiny offline brain."
             return
         try:
             self._client = anthropic.Anthropic(api_key=key)
+            self._init_error = None
         except Exception as e:
+            self._client = None
             self._init_error = f"Demo mode: could not connect to Anthropic ({e})"
 
     @property
     def ready(self) -> bool:
+        self._refresh_client()
         return self._client is not None
 
     @property
     def demo_mode(self) -> bool:
+        self._refresh_client()
         return self._client is None
 
     @property
     def init_error(self) -> Optional[str]:
+        self._refresh_client()
         return self._init_error
 
     # ---------- internals ----------
@@ -72,6 +87,7 @@ class BuddyBrain:  # class name kept for code stability; the persona is "Biscuit
         max_tokens: int = 512,
     ) -> dict:
         """Chat with Claude using a per-skill history. Returns {ok, text}."""
+        self._refresh_client()  # picks up newly-pasted keys without restart
         if not self._client:
             # Caller decides which demo fallback to use; default safe message
             return {"ok": True, "text": DEMO_GAME_REPLY, "demo": True}
@@ -155,6 +171,7 @@ class BuddyBrain:  # class name kept for code stability; the persona is "Biscuit
     # ---------- robot ----------
 
     def plan_robot(self, user_message: str) -> dict:
+        self._refresh_client()
         if not self._client:
             plan = demo_mode.robot_plan(user_message)
             plan = self._sanitize_plan(plan)

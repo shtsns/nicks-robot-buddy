@@ -41,20 +41,20 @@ DEFAULT_MODEL_ID = "eleven_turbo_v2_5"
 
 class ElevenLabs:
     def __init__(self) -> None:
-        # Env var first, then Documents/NicksRobotBuddy/secrets.json
-        self._key: Optional[str] = resolve_key("ELEVENLABS_API_KEY")
+        # Lazy-resolve the key on every call so changes via the in-app paste
+        # UI take effect immediately without a restart.
         self._client = httpx.Client(timeout=30.0)
-        self._init_error: Optional[str] = None
-        if not self._key:
-            self._init_error = "ELEVENLABS_API_KEY not set"
+
+    def _resolve_key(self) -> Optional[str]:
+        return resolve_key("ELEVENLABS_API_KEY")
 
     @property
     def ready(self) -> bool:
-        return self._key is not None
+        return self._resolve_key() is not None
 
     @property
     def init_error(self) -> Optional[str]:
-        return self._init_error
+        return None if self.ready else "ELEVENLABS_API_KEY not set"
 
     def _voice_settings(self) -> dict:
         return {
@@ -72,7 +72,8 @@ class ElevenLabs:
     ) -> bytes:
         """Synthesize text to MP3 audio bytes. Raises RuntimeError on failure
         so the caller can fall back to Web Speech."""
-        if not self._key:
+        key = self._resolve_key()
+        if not key:
             raise RuntimeError("ELEVENLABS_API_KEY not set")
         if not text or not text.strip():
             raise ValueError("Empty text")
@@ -80,7 +81,7 @@ class ElevenLabs:
         voice = voice_id or DEFAULT_VOICE_ID
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice}"
         headers = {
-            "xi-api-key": self._key,
+            "xi-api-key": key,
             "Content-Type": "application/json",
             "Accept": "audio/mpeg",
         }
@@ -109,16 +110,9 @@ class ElevenLabs:
         model_id: Optional[str] = None,
     ) -> dict:
         """Returns {audio_b64: str, alignment: {...}} where alignment maps
-        characters to playback times in seconds. Used to drive lip sync.
-
-        Alignment shape:
-            {
-              "characters": ["H", "i", "!"...],
-              "character_start_times_seconds": [0.0, 0.05, 0.12, ...],
-              "character_end_times_seconds":   [0.04, 0.11, 0.19, ...],
-            }
-        """
-        if not self._key:
+        characters to playback times in seconds. Used to drive lip sync."""
+        key = self._resolve_key()
+        if not key:
             raise RuntimeError("ELEVENLABS_API_KEY not set")
         if not text or not text.strip():
             raise ValueError("Empty text")
@@ -126,7 +120,7 @@ class ElevenLabs:
         voice = voice_id or DEFAULT_VOICE_ID
         url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice}/with-timestamps"
         headers = {
-            "xi-api-key": self._key,
+            "xi-api-key": key,
             "Content-Type": "application/json",
         }
         payload = {
@@ -163,12 +157,13 @@ class ElevenLabs:
 
     def usage(self) -> Optional[dict]:
         """Returns the user's subscription / character-count info, or None."""
-        if not self._key:
+        key = self._resolve_key()
+        if not key:
             return None
         try:
             resp = self._client.get(
                 "https://api.elevenlabs.io/v1/user/subscription",
-                headers={"xi-api-key": self._key},
+                headers={"xi-api-key": key},
                 timeout=10.0,
             )
             if resp.status_code != 200:
