@@ -4,10 +4,10 @@
 (function () {
   'use strict';
 
-  // Mouth coords match the redesigned puppy: snout cy=190, mouth at y=217-240.
-  const MOUTH_CLOSED = 'M 178 217 Q 189 226 200 223 Q 211 226 222 217';
-  const MOUTH_OPEN_SHAPE = 'M 176 215 Q 200 246 224 215 Q 215 236 200 237 Q 185 236 176 215 Z';
-  const TONGUE_SHAPE = 'M 184 224 Q 200 240 216 224 Q 210 235 200 236 Q 190 235 184 224 Z';
+  // Mouth coords match the head-dominant SVG: snout cy=230, mouth y=260-285.
+  const MOUTH_CLOSED = 'M 175 260 Q 188 273 200 268 Q 212 273 225 260';
+  const MOUTH_OPEN_SHAPE = 'M 173 258 Q 200 290 227 258 Q 218 282 200 283 Q 182 282 173 258 Z';
+  const TONGUE_SHAPE = 'M 182 268 Q 200 286 218 268 Q 211 280 200 281 Q 189 280 182 268 Z';
 
   // ----- Biscuit avatar instances -----
   function mountBiscuit(containerId) {

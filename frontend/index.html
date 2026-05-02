@@ -274,158 +274,125 @@
   </main>
 
   <template id="buddy-template">
-    <!-- Biscuit, redesigned. Bluey/Paw-Patrol style proportions:
-         BIG head, SMALL pear-shaped body, expressive face. -->
+    <!-- Biscuit — head-dominant mascot pose. Flat colors only (no gradients
+         that break across cloned templates). Big head, peek of chest at the
+         bottom, no awkward legs. Reads cleanly at any size. -->
     <svg class="buddy-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <!-- Subtle radial gradient on the head for dimensionality -->
-        <radialGradient id="headGrad" cx="50%" cy="35%" r="65%">
-          <stop offset="0%" stop-color="#F2C880"/>
-          <stop offset="100%" stop-color="#D9A055"/>
-        </radialGradient>
-        <radialGradient id="bodyGrad" cx="50%" cy="30%" r="75%">
-          <stop offset="0%" stop-color="#E5B070"/>
-          <stop offset="100%" stop-color="#C68A38"/>
-        </radialGradient>
-      </defs>
 
-      <!-- TAIL: drawn first, behind body. Big curl visible up-right. -->
+      <!-- TAIL: small curl peeking out behind, on the right side -->
       <g class="tail-group">
         <path class="tail-outer"
-              d="M 285 285 Q 350 280 370 220 Q 385 160 360 135 Q 350 175 350 215 Q 340 260 285 280 Z"
-              fill="#C68A38" stroke="#7A4F22" stroke-width="3" stroke-linejoin="round"/>
+              d="M 295 360 Q 345 340 360 295 Q 372 270 372 310 Q 360 350 320 380 Z"
+              fill="#E5A560" stroke="#7A4F22" stroke-width="3" stroke-linejoin="round"/>
         <path class="tail-inner"
-              d="M 295 280 Q 340 270 355 220 Q 365 175 348 155 Q 343 185 343 215 Q 335 250 298 270 Z"
-              fill="#E5B070" opacity="0.65"/>
+              d="M 305 358 Q 340 340 350 305 Q 358 285 358 305 Q 350 340 320 370 Z"
+              fill="#F2C880" opacity="0.7"/>
       </g>
 
-      <!-- BACK LEGS hint (peeking from behind body sides) -->
-      <g class="back-legs">
-        <ellipse cx="115" cy="355" rx="20" ry="28" fill="#B07A30" stroke="#7A4F22" stroke-width="2.5"/>
-        <ellipse cx="285" cy="355" rx="20" ry="28" fill="#B07A30" stroke="#7A4F22" stroke-width="2.5"/>
-      </g>
-
-      <!-- BODY: pear-shaped, narrower chest + wider haunches. -->
+      <!-- CHEST PEEK: just a hint at the bottom of the canvas, like the
+           dog is leaning out from behind a windowsill. No legs, no paws —
+           the head is the focus. -->
       <g class="body-group">
-        <!-- Haunches (bottom, wider) -->
-        <ellipse class="body-haunches" cx="200" cy="335" rx="105" ry="55"
-                 fill="url(#bodyGrad)" stroke="#7A4F22" stroke-width="3"/>
-        <!-- Chest (top, narrower) -->
-        <ellipse class="body-chest" cx="200" cy="270" rx="68" ry="50"
-                 fill="url(#bodyGrad)" stroke="#7A4F22" stroke-width="3"/>
-        <!-- Cream chest tuft / belly patch -->
-        <ellipse class="body-belly" cx="200" cy="320" rx="68" ry="44"
-                 fill="#FAE8C2" opacity="0.9"/>
-        <ellipse class="chest-tuft" cx="200" cy="265" rx="42" ry="30"
-                 fill="#FAE8C2" opacity="0.85"/>
+        <ellipse class="chest-base" cx="200" cy="385" rx="125" ry="32"
+                 fill="#E5A560" stroke="#7A4F22" stroke-width="3.5"/>
+        <ellipse class="chest-tuft" cx="200" cy="395" rx="78" ry="18"
+                 fill="#FAE8C2"/>
       </g>
 
-      <!-- FRONT LEGS: slimmer, paws with toe beans -->
-      <g class="front-legs">
-        <g class="leg leg-left">
-          <ellipse cx="162" cy="355" rx="20" ry="32" fill="url(#bodyGrad)" stroke="#7A4F22" stroke-width="2.5"/>
-          <!-- Paw -->
-          <ellipse cx="162" cy="380" rx="23" ry="13" fill="#7A4F22"/>
-          <!-- Toe beans -->
-          <ellipse cx="153" cy="378" rx="3.5" ry="2.5" fill="#FECDD3" opacity="0.85"/>
-          <ellipse cx="162" cy="380" rx="3.5" ry="2.5" fill="#FECDD3" opacity="0.85"/>
-          <ellipse cx="171" cy="378" rx="3.5" ry="2.5" fill="#FECDD3" opacity="0.85"/>
-        </g>
-        <g class="leg leg-right">
-          <ellipse cx="238" cy="355" rx="20" ry="32" fill="url(#bodyGrad)" stroke="#7A4F22" stroke-width="2.5"/>
-          <ellipse cx="238" cy="380" rx="23" ry="13" fill="#7A4F22"/>
-          <ellipse cx="229" cy="378" rx="3.5" ry="2.5" fill="#FECDD3" opacity="0.85"/>
-          <ellipse cx="238" cy="380" rx="3.5" ry="2.5" fill="#FECDD3" opacity="0.85"/>
-          <ellipse cx="247" cy="378" rx="3.5" ry="2.5" fill="#FECDD3" opacity="0.85"/>
-        </g>
-      </g>
-
-      <!-- COLLAR: at the neck, between head and chest -->
+      <!-- COLLAR: at the neck, between head and chest peek -->
       <g class="collar">
-        <rect x="142" y="218" width="116" height="18" rx="9"
-              fill="#3B82F6" stroke="#1E40AF" stroke-width="2"/>
-        <circle cx="200" cy="245" r="13" fill="#FBBF24" stroke="#B45309" stroke-width="2"/>
-        <text x="200" y="251" text-anchor="middle"
+        <rect x="135" y="335" width="130" height="20" rx="10"
+              fill="#3B82F6" stroke="#1E40AF" stroke-width="2.5"/>
+        <circle cx="200" cy="362" r="14" fill="#FBBF24" stroke="#B45309" stroke-width="2"/>
+        <text x="200" y="368" text-anchor="middle"
               font-family="Georgia, serif" font-size="14" font-weight="bold" fill="#7C2D12">B</text>
       </g>
 
-      <!-- HEAD GROUP: dominantly large head with all face features -->
+      <!-- HEAD GROUP: dominant cartoon-puppy face -->
       <g class="head-group">
-        <!-- EARS: drawn first so head edges them slightly. Floppy hanging. -->
+
+        <!-- EARS: floppy, hanging from upper sides of head. Stay close to
+             the head silhouette so they don't drape weirdly. -->
         <g class="ear ear-left">
           <path class="ear-outer"
-                d="M 102 78 Q 35 100 35 175 Q 40 240 88 245 Q 122 232 132 162 Q 134 92 102 78 Z"
+                d="M 110 95
+                   Q 55 115 55 195
+                   Q 60 270 105 285
+                   Q 145 270 150 195
+                   Q 150 100 110 95 Z"
                 fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3" stroke-linejoin="round"/>
           <path class="ear-inner"
-                d="M 102 100 Q 60 115 58 178 Q 62 225 92 230 Q 116 218 122 168 Q 124 110 102 100 Z"
-                fill="#C68A38" opacity="0.85"/>
+                d="M 110 118
+                   Q 75 132 73 200
+                   Q 78 255 108 270
+                   Q 138 255 140 200
+                   Q 140 117 110 118 Z"
+                fill="#C68A38"/>
         </g>
         <g class="ear ear-right">
           <path class="ear-outer"
-                d="M 298 78 Q 365 100 365 175 Q 360 240 312 245 Q 278 232 268 162 Q 266 92 298 78 Z"
+                d="M 290 95
+                   Q 345 115 345 195
+                   Q 340 270 295 285
+                   Q 255 270 250 195
+                   Q 250 100 290 95 Z"
                 fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3" stroke-linejoin="round"/>
           <path class="ear-inner"
-                d="M 298 100 Q 340 115 342 178 Q 338 225 308 230 Q 284 218 278 168 Q 276 110 298 100 Z"
-                fill="#C68A38" opacity="0.85"/>
+                d="M 290 118
+                   Q 325 132 327 200
+                   Q 322 255 292 270
+                   Q 262 255 260 200
+                   Q 260 117 290 118 Z"
+                fill="#C68A38"/>
         </g>
 
-        <!-- HEAD: bigger and rounder, gradient for depth -->
-        <ellipse class="head" cx="200" cy="140" rx="108" ry="100"
-                 fill="url(#headGrad)" stroke="#7A4F22" stroke-width="3.5"/>
+        <!-- HEAD: huge round shape, flat golden tan -->
+        <ellipse class="head" cx="200" cy="180" rx="138" ry="128"
+                 fill="#E5A560" stroke="#7A4F22" stroke-width="4"/>
 
-        <!-- Forehead light patch -->
-        <ellipse cx="200" cy="115" rx="78" ry="55" fill="#F5C871" opacity="0.55"/>
+        <!-- Forehead light patch (subtle warmth) -->
+        <ellipse cx="200" cy="155" rx="100" ry="65" fill="#F2C880" opacity="0.55"/>
 
-        <!-- CHEEK ROSIES — soft pink, very kid-cute -->
-        <ellipse class="cheek cheek-left"  cx="125" cy="170" rx="18" ry="11"
-                 fill="#FB7185" opacity="0.45"/>
-        <ellipse class="cheek cheek-right" cx="275" cy="170" rx="18" ry="11"
-                 fill="#FB7185" opacity="0.45"/>
+        <!-- CHEEK ROSIES — pink tint -->
+        <ellipse class="cheek cheek-left"  cx="115" cy="220" rx="18" ry="12"
+                 fill="#FB7185" opacity="0.5"/>
+        <ellipse class="cheek cheek-right" cx="285" cy="220" rx="18" ry="12"
+                 fill="#FB7185" opacity="0.5"/>
 
-        <!-- SNOUT: rounded, lighter -->
-        <ellipse class="snout" cx="200" cy="190" rx="62" ry="44"
-                 fill="#FAE8C2" stroke="#C68A38" stroke-width="2.5"/>
+        <!-- SNOUT: lighter cream area where the mouth and nose live -->
+        <ellipse class="snout" cx="200" cy="230" rx="78" ry="55"
+                 fill="#FAE8C2" stroke="#C68A38" stroke-width="3"/>
 
-        <!-- EYEBROWS: tiny arcs above each eye for expression -->
-        <path class="brow brow-left"
-              d="M 138 108 Q 158 100 178 110"
-              fill="none" stroke="#5C3D1A" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
-        <path class="brow brow-right"
-              d="M 222 110 Q 242 100 262 108"
-              fill="none" stroke="#5C3D1A" stroke-width="3" stroke-linecap="round" opacity="0.85"/>
-
-        <!-- EYES: bigger, rounder, more expressive -->
+        <!-- EYES: big, expressive, with light-catch highlights -->
         <g class="eye eye-left">
-          <ellipse cx="160" cy="145" rx="20" ry="24" fill="#1a1a1a"/>
-          <ellipse cx="160" cy="145" rx="14" ry="18" fill="#3B2418"/>
-          <circle cx="166" cy="138" r="7" fill="#fff"/>
-          <circle cx="156" cy="152" r="3" fill="#fff" opacity="0.85"/>
+          <ellipse cx="158" cy="180" rx="22" ry="27" fill="#1a1a1a"/>
+          <circle cx="164" cy="172" r="8" fill="#fff"/>
+          <circle cx="153" cy="190" r="3.5" fill="#fff" opacity="0.85"/>
         </g>
         <g class="eye eye-right">
-          <ellipse cx="240" cy="145" rx="20" ry="24" fill="#1a1a1a"/>
-          <ellipse cx="240" cy="145" rx="14" ry="18" fill="#3B2418"/>
-          <circle cx="246" cy="138" r="7" fill="#fff"/>
-          <circle cx="236" cy="152" r="3" fill="#fff" opacity="0.85"/>
+          <ellipse cx="242" cy="180" rx="22" ry="27" fill="#1a1a1a"/>
+          <circle cx="248" cy="172" r="8" fill="#fff"/>
+          <circle cx="237" cy="190" r="3.5" fill="#fff" opacity="0.85"/>
         </g>
 
-        <!-- NOSE: heart-shaped (classic cute puppy) -->
+        <!-- NOSE: classic heart shape, sits at top of snout -->
         <path class="nose"
-              d="M 200 175
-                 C 192 168 180 170 180 180
-                 C 180 192 195 200 200 207
-                 C 205 200 220 192 220 180
-                 C 220 170 208 168 200 175 Z"
+              d="M 200 215
+                 C 192 207 178 209 178 220
+                 C 178 233 193 242 200 250
+                 C 207 242 222 233 222 220
+                 C 222 209 208 207 200 215 Z"
               fill="#1a1a1a"/>
-        <ellipse cx="192" cy="178" rx="4" ry="2.5" fill="#fff" opacity="0.55"/>
+        <ellipse cx="190" cy="218" rx="4.5" ry="2.5" fill="#fff" opacity="0.55"/>
 
-        <!-- MOUTH: smile, opens via JS during TTS -->
+        <!-- MOUTH: open smile under the snout, opens wider when speaking -->
         <g class="mouth-group">
           <path class="mouth-path"
-                d="M 178 217 Q 189 226 200 223 Q 211 226 222 217"
-                fill="none" stroke="#1a1a1a" stroke-width="3.5" stroke-linecap="round"/>
+                d="M 175 260 Q 188 273 200 268 Q 212 273 225 260"
+                fill="none" stroke="#1a1a1a" stroke-width="4" stroke-linecap="round"/>
           <path class="mouth-tongue"
-                d="M 184 224 Q 200 240 216 224 Q 210 235 200 236 Q 190 235 184 224 Z"
-                fill="#FB7185" stroke="#A8485A" stroke-width="1.2" opacity="0"/>
+                d="M 182 268 Q 200 286 218 268 Q 211 280 200 281 Q 189 280 182 268 Z"
+                fill="#FB7185" stroke="#A8485A" stroke-width="1.5" opacity="0"/>
         </g>
       </g>
     </svg>

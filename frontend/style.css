@@ -235,9 +235,9 @@ html, body {
    loops perfectly. Custom easing curves replace the default ease-in-out
    for a more natural, springy feel. */
 
-/* Tail wag — anchored to the redesigned tail base on the right side of the body */
+/* Tail wag — anchored to the chest-side base of the small peeking tail */
 .tail-group {
-  transform-origin: 290px 282px;
+  transform-origin: 295px 360px;
   animation: wag 1.7s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
 .buddy-svg.speaking .tail-group { animation: wag 0.42s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
@@ -249,14 +249,14 @@ html, body {
   100% { transform: rotate(-15deg) translateY(0); }
 }
 
-/* Ears: anchored to their attach points at the top of the new bigger head */
+/* Ears: anchored to their attach points on the upper-sides of the head */
 .ear-left {
-  transform-origin: 102px 78px;
+  transform-origin: 110px 95px;
   animation: earBounceL 3.1s cubic-bezier(0.42, 0, 0.58, 1) infinite,
              earFlickL 11s ease-in-out infinite;
 }
 .ear-right {
-  transform-origin: 298px 78px;
+  transform-origin: 290px 95px;
   animation: earBounceR 2.9s cubic-bezier(0.42, 0, 0.58, 1) infinite,
              earFlickR 13s ease-in-out infinite;
 }
@@ -280,25 +280,22 @@ html, body {
   6%   { transform: rotate(-2deg); }
 }
 
-/* Front legs: weight-shifting idle (anchored to leg tops on new body) */
-.leg-left  { transform-origin: 162px 325px; animation: legSwayL 3.7s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
-.leg-right { transform-origin: 238px 325px; animation: legSwayR 3.5s cubic-bezier(0.45, 0, 0.55, 1) infinite; }
-@keyframes legSwayL { 0%, 100% { transform: rotate(0deg) translateY(0); } 50% { transform: rotate(-2deg) translateY(-1px); } }
-@keyframes legSwayR { 0%, 100% { transform: rotate(0deg) translateY(0); } 50% { transform: rotate(2deg) translateY(-1px); } }
+/* Front legs no longer in the SVG (mascot pose has chest peek only) —
+   the leg sway keyframes harmlessly target nothing now. */
 
-/* Body subtly bobs as if breathing through it */
+/* Chest peek subtle breathing */
 .body-group {
-  transform-origin: 200px 320px;
+  transform-origin: 200px 385px;
   animation: bodyBreath 3.8s cubic-bezier(0.45, 0, 0.55, 1) infinite;
 }
 @keyframes bodyBreath {
   0%, 100% { transform: scaleY(1) scaleX(1); }
-  50%      { transform: scaleY(1.025) scaleX(0.992); }
+  50%      { transform: scaleY(1.04) scaleX(0.995); }
 }
 
-/* Head subtle bob — tied to body but slower so it desyncs naturally */
+/* Head subtle bob — anchored at the neck (just above the collar) */
 .head-group {
-  transform-origin: 200px 230px;
+  transform-origin: 200px 320px;
   animation: headBob 4.5s cubic-bezier(0.42, 0, 0.58, 1) infinite;
 }
 @keyframes headBob {
