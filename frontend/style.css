@@ -579,10 +579,10 @@ body.rainbow-mode {
    screen at 125% zoom without scrolling. */
 .skill-tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
   width: 100%;
-  max-width: 1100px;
+  max-width: 880px;
   margin-top: 4px;
   padding: 0 16px;
 }
@@ -592,17 +592,17 @@ body.rainbow-mode {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 6px;
-  padding: 14px 12px;
+  gap: 3px;
+  padding: 10px 10px;
   font-family: inherit;
   background: white;
   color: #4A3320;
   border: 3px solid #3B82F6;
-  border-radius: 18px;
+  border-radius: 16px;
   cursor: pointer;
   box-shadow: 0 4px 0 #1E40AF, 0 8px 16px rgba(30, 64, 175, 0.14);
   transition: transform 0.15s ease, box-shadow 0.15s ease;
-  min-height: 118px;
+  min-height: 86px;
 }
 .skill-tile:hover {
   transform: translateY(-3px);
@@ -613,29 +613,30 @@ body.rainbow-mode {
   box-shadow: 0 1px 0 #1E40AF, 0 3px 6px rgba(30, 64, 175, 0.15);
 }
 
-.tile-icon { font-size: 38px; line-height: 1; }
+.tile-icon { font-size: 28px; line-height: 1; }
 .tile-label {
   font-weight: bold;
-  font-size: 16px;
+  font-size: 14px;
   text-align: center;
 }
 .tile-sub {
-  font-size: 11px;
+  font-size: 10px;
   color: #78350F;
   text-align: center;
   font-style: italic;
-  line-height: 1.25;
+  line-height: 1.2;
 }
 
-/* On the picker view specifically, shrink Biscuit so the tile grid has room. */
+/* On the picker view, Biscuit is the hero — make him big. The compact tile
+   grid below fits 8 tiles in two rows so everything still lands on one screen. */
 #view-picker .buddy-stage {
-  width: 170px;
-  height: 170px;
-  margin-bottom: -8px;
+  width: 300px;
+  height: 300px;
+  margin-bottom: -18px;
 }
 #view-picker .prompt {
-  font-size: 24px;
-  margin: 4px 0 12px;
+  font-size: 26px;
+  margin: 2px 0 14px;
 }
 
 /* View titles */

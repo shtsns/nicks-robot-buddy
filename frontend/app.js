@@ -9,62 +9,32 @@
   const MOUTH_OPEN_SHAPE = 'M 173 258 Q 200 290 227 258 Q 218 282 200 283 Q 182 282 173 258 Z';
   const TONGUE_SHAPE = 'M 182 268 Q 200 286 218 268 Q 211 280 200 281 Q 189 280 182 268 Z';
 
-  // ----- Biscuit avatar (Lottie-rendered) -----
-  // Uses lottie-web to render a designer-grade animation from the JSON at
-  // assets/lottie/biscuit.json (inlined as window.BISCUIT_LOTTIE_DATA by
-  // the Python runtime so file:// XHR isn't an issue).
-  //
-  // Each call returns a wrapper <div class="buddy-svg"> so all existing
-  // CSS selectors that hook tricks/state classes continue to work.
-  const _allBiscuits = [];
+  // ----- Biscuit avatar (hand-coded SVG) -----
+  // Each mount clones the #buddy-template SVG so every instance has the named
+  // parts (.eye, .nose, .collar, .mouth-path, .head-group, ...) that the CSS
+  // idle/trick animations and JS interactions (eye-tracking, nose-boop,
+  // lip-sync, collar-tag) hook into. Returns the cloned <svg class="buddy-svg">.
+  const _buddyTemplate = document.getElementById('buddy-template');
 
   function mountBiscuit(containerId) {
     const root = document.getElementById(containerId);
     if (!root) return null;
     root.innerHTML = '';
 
-    const wrapper = document.createElement('div');
-    wrapper.className = 'buddy-svg';   // reused by trick + state animations
-    wrapper.style.width = '100%';
-    wrapper.style.height = '100%';
-    root.appendChild(wrapper);
-
-    // Emoji fallback if Lottie didn't load (offline, bundled lib missing).
-    if (typeof lottie === 'undefined' || !window.BISCUIT_LOTTIE_DATA) {
-      console.warn('[buddy] Lottie unavailable — using emoji fallback');
-      wrapper.style.display = 'flex';
-      wrapper.style.alignItems = 'center';
-      wrapper.style.justifyContent = 'center';
-      wrapper.style.fontSize = '120px';
+    // Emoji fallback if the template is missing for any reason.
+    if (!_buddyTemplate || !_buddyTemplate.content.querySelector('svg')) {
+      console.warn('[buddy] SVG template unavailable — using emoji fallback');
+      const wrapper = document.createElement('div');
+      wrapper.className = 'buddy-svg';
+      wrapper.style.cssText = 'width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:120px;';
       wrapper.textContent = '🐶';
+      root.appendChild(wrapper);
       return wrapper;
     }
 
-    try {
-      const anim = lottie.loadAnimation({
-        container: wrapper,
-        renderer: 'svg',
-        loop: true,
-        autoplay: true,
-        animationData: window.BISCUIT_LOTTIE_DATA,
-        rendererSettings: { preserveAspectRatio: 'xMidYMid meet' },
-      });
-      anim.setSpeed(1);
-      wrapper._lottie = anim;
-      _allBiscuits.push({ wrapper, anim });
-    } catch (e) {
-      console.error('[buddy] Lottie mount failed:', e);
-      wrapper.textContent = '🐶';
-    }
-    return wrapper;
-  }
-
-  // Pseudo-mouth-sync: speed up the Lottie idle during TTS so the puppy
-  // looks more animated, then back to normal when speech ends.
-  function setBiscuitSpeed(speed) {
-    _allBiscuits.forEach(({ anim }) => {
-      try { anim.setSpeed(speed); } catch (e) { /* ignore */ }
-    });
+    const svg = _buddyTemplate.content.querySelector('svg').cloneNode(true);
+    root.appendChild(svg);
+    return svg;
   }
 
   const buddies = {
@@ -79,13 +49,13 @@
     photobooth: mountBiscuit('buddy-photobooth'),
   };
 
-  // Mouth manipulation is a no-op now (Lottie handles its own mouth motion).
-  // Kept as stubs so callers don't break.
+  // Drive the SVG mouth open/closed for lip-sync. Called from the TTS loop
+  // (timer-based for Web Speech, alignment-driven for ElevenLabs).
   function setMouth(buddy, open) {
     if (!buddy) return;
     const path = buddy.querySelector('.mouth-path');
     const tongue = buddy.querySelector('.mouth-tongue');
-    if (!path || !tongue) return;  // no SVG mouth — it's a Lottie now
+    if (!path || !tongue) return;
     if (open) {
       path.setAttribute('d', MOUTH_OPEN_SHAPE);
       path.setAttribute('fill', '#1a1a1a');
@@ -100,11 +70,9 @@
 
   function setSpeaking(buddy, speaking) {
     if (!buddy) return;
+    // The 'speaking' class speeds up the tail wag (see style.css); the mouth
+    // itself is driven frame-by-frame via setMouth from the lip-sync loop.
     buddy.classList.toggle('speaking', speaking);
-    // For the Lottie-rendered Biscuit, "speaking" means play faster so the
-    // built-in mouth/body motion looks more energetic. Speed reverts in
-    // stopMouthSync.
-    setBiscuitSpeed(speaking ? 1.6 : 1);
   }
 
   // ----- View routing -----
@@ -1453,11 +1421,21 @@
     if (e.detail.id !== 'view-photobooth') stopPhotobooth();
   });
 
-  function svgToImage(svgEl) {
+  // Rasterize a live SVG node into an <img> so it can be drawn onto a canvas.
+  // We freeze it to a clean idle pose: external CSS (animations, the cursor
+  // eye-offset transform) doesn't apply inside a standalone serialized SVG,
+  // but we strip inline animation/transform too as belt-and-suspenders.
+  function svgToImage(svgEl, size = 400) {
     return new Promise((resolve, reject) => {
       try {
         const cloned = svgEl.cloneNode(true);
-        cloned.querySelectorAll('*').forEach(el => { el.style.animation = 'none'; });
+        cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+        cloned.setAttribute('width', size);
+        cloned.setAttribute('height', size);
+        cloned.querySelectorAll('*').forEach(el => {
+          el.style.animation = 'none';
+          el.style.transform = 'none';
+        });
         const xml = new XMLSerializer().serializeToString(cloned);
         const blob = new Blob([xml], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(blob);
@@ -1686,6 +1664,22 @@
       _stickers.forEach((s) => {
         ctx.fillText(s.emoji, s.x * canvas.width, s.y * canvas.height);
       });
+    }
+
+    // 2b. Biscuit himself — he's ALWAYS part of the photo. Bake the live SVG
+    //     into the bottom-right corner, matching the .photobooth-biscuit-overlay
+    //     the kid sees in the live preview (right/bottom ~2%, width 28%).
+    try {
+      const biscuitSvg = document.querySelector('#buddy-photobooth svg');
+      if (biscuitSvg) {
+        const bw = canvas.width * 0.28;
+        const bh = bw;  // square viewBox
+        const margin = canvas.width * 0.02;
+        const img = await svgToImage(biscuitSvg);
+        ctx.drawImage(img, canvas.width - bw - margin, canvas.height - bh - margin, bw, bh);
+      }
+    } catch (e) {
+      console.warn('[buddy] could not bake Biscuit into photo:', e);
     }
 
     // 3. Caption text — drawn at the bottom over a translucent backing

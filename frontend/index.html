@@ -214,7 +214,7 @@
         <!-- Sticker overlay layer — stickers live here over the video,
              draggable, baked into the saved photo at capture time. -->
         <div id="photobooth-stickers" class="photobooth-stickers"></div>
-        <!-- Lottie Biscuit corner companion -->
+        <!-- Biscuit corner companion (baked into the saved photo at capture) -->
         <div class="photobooth-biscuit-overlay">
           <div id="buddy-photobooth"></div>
         </div>
@@ -326,112 +326,143 @@
 
   </main>
 
-  <!-- Legacy hand-coded SVG template — no longer rendered (Lottie handles
-       the avatar now). Kept as a structural reference in case we ever need
-       the emoji-fallback or want to A/B against a coded version. -->
-  <template id="buddy-template-legacy">
-    <!-- Biscuit — head-dominant mascot pose. Flat colors only (no gradients
-         that break across cloned templates). Big head, peek of chest at the
-         bottom, no awkward legs. Reads cleanly at any size. -->
+  <!-- Biscuit the Corgi — hand-coded SVG mascot. Head-dominant pose with a
+       chest peek and short corgi paws. Flat colors only (gradients break when
+       templates are cloned). Every named part below is hooked by CSS (idle +
+       trick animations) and JS (eye-tracking, nose-boop, collar-tag, lip-sync),
+       so keep the class names and the geometry anchors in sync with style.css. -->
+  <template id="buddy-template">
     <svg class="buddy-svg" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
 
-      <!-- TAIL: small curl peeking out behind, on the right side -->
+      <!-- TAIL: stubby corgi nub peeking behind the right haunch. Wag origin
+           ~295,340 (see .tail-group in style.css). -->
       <g class="tail-group">
         <path class="tail-outer"
-              d="M 295 360 Q 345 340 360 295 Q 372 270 372 310 Q 360 350 320 380 Z"
-              fill="#E5A560" stroke="#7A4F22" stroke-width="3" stroke-linejoin="round"/>
+              d="M 300 338 Q 344 328 356 298 Q 364 282 371 300 Q 363 336 331 358 Q 314 350 300 338 Z"
+              fill="#E0A567" stroke="#8A5A2B" stroke-width="3" stroke-linejoin="round"/>
         <path class="tail-inner"
-              d="M 305 358 Q 340 340 350 305 Q 358 285 358 305 Q 350 340 320 370 Z"
-              fill="#F2C880" opacity="0.7"/>
+              d="M 310 336 Q 342 328 352 304 Q 358 292 361 306 Q 353 332 333 350 Z"
+              fill="#FBF5EA" opacity="0.85"/>
       </g>
 
-      <!-- CHEST PEEK: just a hint at the bottom of the canvas, like the
-           dog is leaning out from behind a windowsill. No legs, no paws —
-           the head is the focus. -->
+      <!-- BODY: full rounded sitting-puppy body. Rises behind the head (top
+           ~y268) so the head — drawn last — overlaps it with no seam. The white
+           bib is the corgi chest. Anchor for breathing/squash is 200,385. -->
       <g class="body-group">
-        <ellipse class="chest-base" cx="200" cy="385" rx="125" ry="32"
-                 fill="#E5A560" stroke="#7A4F22" stroke-width="3.5"/>
-        <ellipse class="chest-tuft" cx="200" cy="395" rx="78" ry="18"
-                 fill="#FAE8C2"/>
+        <path class="chest-base"
+              d="M 200 270
+                 C 130 270, 86 318, 86 362
+                 C 86 396, 126 412, 200 412
+                 C 274 412, 314 396, 314 362
+                 C 314 318, 270 270, 200 270 Z"
+              fill="#E0A567" stroke="#8A5A2B" stroke-width="3.5" stroke-linejoin="round"/>
+        <path class="chest-tuft"
+              d="M 200 300
+                 C 170 302, 152 338, 152 372
+                 C 152 398, 174 412, 200 412
+                 C 226 412, 248 398, 248 372
+                 C 248 338, 230 302, 200 300 Z"
+              fill="#FBF5EA"/>
       </g>
 
-      <!-- COLLAR: at the neck, between head and chest peek -->
+      <!-- FRONT LEGS: two stubby corgi legs sitting at the front, flanking the
+           chest bib, with white paws + toe lines. Right leg is tagged
+           .leg-right so the "shake" trick can swing it. -->
+      <g class="front-legs">
+        <g class="leg leg-left">
+          <rect x="140" y="346" width="46" height="64" rx="22"
+                fill="#E0A567" stroke="#8A5A2B" stroke-width="3"/>
+          <ellipse cx="163" cy="406" rx="26" ry="14" fill="#FBF5EA" stroke="#8A5A2B" stroke-width="2.5"/>
+          <path d="M 156 400 L 156 412 M 163 401 L 163 413 M 170 400 L 170 412"
+                stroke="#D8C4A0" stroke-width="2" stroke-linecap="round"/>
+        </g>
+        <g class="leg leg-right">
+          <rect x="214" y="346" width="46" height="64" rx="22"
+                fill="#E0A567" stroke="#8A5A2B" stroke-width="3"/>
+          <ellipse cx="237" cy="406" rx="26" ry="14" fill="#FBF5EA" stroke="#8A5A2B" stroke-width="2.5"/>
+          <path d="M 230 400 L 230 412 M 237 401 L 237 413 M 244 400 L 244 412"
+                stroke="#D8C4A0" stroke-width="2" stroke-linecap="round"/>
+        </g>
+      </g>
+
+      <!-- COLLAR: blue band at the neck with a bone-shaped name tag hanging onto
+           the chest. The <text> is clickable (easter egg → play stats). -->
       <g class="collar">
-        <rect x="135" y="335" width="130" height="20" rx="10"
+        <rect x="132" y="312" width="136" height="22" rx="11"
               fill="#3B82F6" stroke="#1E40AF" stroke-width="2.5"/>
-        <circle cx="200" cy="362" r="14" fill="#FBBF24" stroke="#B45309" stroke-width="2"/>
-        <text x="200" y="368" text-anchor="middle"
-              font-family="Georgia, serif" font-size="14" font-weight="bold" fill="#7C2D12">B</text>
+        <!-- Bone tag: two lobes each side + a connecting bar -->
+        <g class="name-tag">
+          <circle cx="171" cy="346" r="9" fill="#FCEFC7" stroke="#C99A46" stroke-width="2"/>
+          <circle cx="171" cy="360" r="9" fill="#FCEFC7" stroke="#C99A46" stroke-width="2"/>
+          <circle cx="229" cy="346" r="9" fill="#FCEFC7" stroke="#C99A46" stroke-width="2"/>
+          <circle cx="229" cy="360" r="9" fill="#FCEFC7" stroke="#C99A46" stroke-width="2"/>
+          <rect x="168" y="343" width="64" height="20" rx="6"
+                fill="#FCEFC7" stroke="#C99A46" stroke-width="2"/>
+          <rect x="174" y="346" width="52" height="14" fill="#FCEFC7"/>
+          <text x="200" y="357" text-anchor="middle"
+                font-family="'Comic Sans MS', 'Segoe UI', sans-serif"
+                font-size="11" font-weight="bold" fill="#7C2D12">Biscuit</text>
+        </g>
       </g>
 
-      <!-- HEAD GROUP: dominant cartoon-puppy face -->
+      <!-- HEAD GROUP: dominant corgi face. Anchor for bob is 200,320 (neck). -->
       <g class="head-group">
 
-        <!-- EARS: floppy, hanging from upper sides of head. Stay close to
-             the head silhouette so they don't drape weirdly. -->
+        <!-- EARS: big upright pointy corgi ears. Drawn before the head so the
+             head ellipse covers their base. Anchors 110,95 / 290,95. -->
         <g class="ear ear-left">
           <path class="ear-outer"
-                d="M 110 95
-                   Q 55 115 55 195
-                   Q 60 270 105 285
-                   Q 145 270 150 195
-                   Q 150 100 110 95 Z"
-                fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3" stroke-linejoin="round"/>
+                d="M 142 150 C 104 152 74 138 70 96 C 66 54 82 16 104 16 C 122 18 134 78 145 138 Z"
+                fill="#E0A567" stroke="#8A5A2B" stroke-width="3.5" stroke-linejoin="round"/>
           <path class="ear-inner"
-                d="M 110 118
-                   Q 75 132 73 200
-                   Q 78 255 108 270
-                   Q 138 255 140 200
-                   Q 140 117 110 118 Z"
-                fill="#C68A38"/>
+                d="M 130 132 C 106 132 90 120 88 92 C 86 60 96 34 108 36 C 118 42 124 86 130 132 Z"
+                fill="#F2A7A0"/>
         </g>
         <g class="ear ear-right">
           <path class="ear-outer"
-                d="M 290 95
-                   Q 345 115 345 195
-                   Q 340 270 295 285
-                   Q 255 270 250 195
-                   Q 250 100 290 95 Z"
-                fill="#8B5E2A" stroke="#5C3D1A" stroke-width="3" stroke-linejoin="round"/>
+                d="M 258 150 C 296 152 326 138 330 96 C 334 54 318 16 296 16 C 278 18 266 78 255 138 Z"
+                fill="#E0A567" stroke="#8A5A2B" stroke-width="3.5" stroke-linejoin="round"/>
           <path class="ear-inner"
-                d="M 290 118
-                   Q 325 132 327 200
-                   Q 322 255 292 270
-                   Q 262 255 260 200
-                   Q 260 117 290 118 Z"
-                fill="#C68A38"/>
+                d="M 270 132 C 294 132 310 120 312 92 C 314 60 304 34 292 36 C 282 42 276 86 270 132 Z"
+                fill="#F2A7A0"/>
         </g>
 
-        <!-- HEAD: huge round shape, flat golden tan -->
-        <ellipse class="head" cx="200" cy="180" rx="138" ry="128"
-                 fill="#E5A560" stroke="#7A4F22" stroke-width="4"/>
+        <!-- HEAD: big round tan shape -->
+        <ellipse class="head" cx="200" cy="185" rx="132" ry="122"
+                 fill="#E0A567" stroke="#8A5A2B" stroke-width="4"/>
 
-        <!-- Forehead light patch (subtle warmth) -->
-        <ellipse cx="200" cy="155" rx="100" ry="65" fill="#F2C880" opacity="0.55"/>
+        <!-- WHITE BLAZE: corgi signature stripe up the forehead, flowing into
+             the white muzzle below. -->
+        <path class="blaze"
+              d="M 200 92
+                 C 182 120 178 152 184 188
+                 C 187 212 213 212 216 188
+                 C 222 152 218 120 200 92 Z"
+              fill="#FBF5EA"/>
 
-        <!-- CHEEK ROSIES — pink tint -->
-        <ellipse class="cheek cheek-left"  cx="115" cy="220" rx="18" ry="12"
-                 fill="#FB7185" opacity="0.5"/>
-        <ellipse class="cheek cheek-right" cx="285" cy="220" rx="18" ry="12"
-                 fill="#FB7185" opacity="0.5"/>
+        <!-- CHEEK ROSIES -->
+        <ellipse class="cheek cheek-left"  cx="120" cy="222" rx="18" ry="12"
+                 fill="#FB7185" opacity="0.45"/>
+        <ellipse class="cheek cheek-right" cx="280" cy="222" rx="18" ry="12"
+                 fill="#FB7185" opacity="0.45"/>
 
-        <!-- SNOUT: lighter cream area where the mouth and nose live -->
-        <ellipse class="snout" cx="200" cy="230" rx="78" ry="55"
-                 fill="#FAE8C2" stroke="#C68A38" stroke-width="3"/>
+        <!-- SNOUT: white corgi muzzle where nose + mouth live -->
+        <ellipse class="snout" cx="200" cy="232" rx="80" ry="56"
+                 fill="#FBF5EA" stroke="#D8C4A0" stroke-width="2.5"/>
 
-        <!-- EYES: big, expressive, with light-catch highlights -->
+        <!-- EYES: big and dark with light-catch highlights -->
         <g class="eye eye-left">
-          <ellipse cx="158" cy="180" rx="22" ry="27" fill="#1a1a1a"/>
-          <circle cx="164" cy="172" r="8" fill="#fff"/>
-          <circle cx="153" cy="190" r="3.5" fill="#fff" opacity="0.85"/>
+          <ellipse cx="158" cy="182" rx="21" ry="26" fill="#1a1a1a"/>
+          <circle cx="164" cy="174" r="7.5" fill="#fff"/>
+          <circle cx="153" cy="192" r="3.5" fill="#fff" opacity="0.85"/>
         </g>
         <g class="eye eye-right">
-          <ellipse cx="242" cy="180" rx="22" ry="27" fill="#1a1a1a"/>
-          <circle cx="248" cy="172" r="8" fill="#fff"/>
-          <circle cx="237" cy="190" r="3.5" fill="#fff" opacity="0.85"/>
+          <ellipse cx="242" cy="182" rx="21" ry="26" fill="#1a1a1a"/>
+          <circle cx="248" cy="174" r="7.5" fill="#fff"/>
+          <circle cx="237" cy="192" r="3.5" fill="#fff" opacity="0.85"/>
         </g>
 
-        <!-- NOSE: classic heart shape, sits at top of snout -->
+        <!-- NOSE: classic heart shape at the top of the muzzle -->
         <path class="nose"
               d="M 200 215
                  C 192 207 178 209 178 220
@@ -441,7 +472,8 @@
               fill="#1a1a1a"/>
         <ellipse cx="190" cy="218" rx="4.5" ry="2.5" fill="#fff" opacity="0.55"/>
 
-        <!-- MOUTH: open smile under the snout, opens wider when speaking -->
+        <!-- MOUTH: smile under the muzzle; opens + tongue shows during speech.
+             Coords MUST match MOUTH_CLOSED / TONGUE_SHAPE in app.js. -->
         <g class="mouth-group">
           <path class="mouth-path"
                 d="M 175 260 Q 188 273 200 268 Q 212 273 225 260"
@@ -454,7 +486,6 @@
     </svg>
   </template>
 
-  <script src="lib/lottie.min.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
